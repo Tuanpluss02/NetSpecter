@@ -5,7 +5,7 @@ class NetSpecterSettings {
     this.maxBodyBytes = 2 * 1024 * 1024,
     this.maxQueuedEvents = 500,
     this.maxEntries = 5000,
-    this.urlDecodeEnabled = false,
+    this.urlDecodeEnabled = true,
   });
 
   /// Body size (bytes) above which data is offloaded to the temp file.

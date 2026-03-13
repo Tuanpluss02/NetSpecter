@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
+
 import '../../storage/inspector_session.dart';
 
 class SettingsBottomSheet extends StatefulWidget {
@@ -21,11 +22,7 @@ class SettingsBottomSheet extends StatefulWidget {
 }
 
 class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
-  bool _ignoreStaticAssets = true;
-  String _maxRequests = '1000';
-  bool _clearOnRestart = false;
-  bool _shakeToOpen = true;
-  bool _urlDecodeEnabled = false;
+  bool _urlDecodeEnabled = true;
 
   @override
   void initState() {
@@ -77,13 +74,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -96,56 +86,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                _buildSectionTitle('1. Network Filtering'),
-                _buildSectionCard([
-                  _SettingsTile(
-                    icon: Icons.public,
-                    title: 'Ignored Domains',
-                    subtitle: 'Exclude specific URLs from logging',
-                    trailing:
-                        const Icon(Icons.chevron_right, color: Colors.grey),
-                    onTap: () {},
-                  ),
-                  _SettingsTile(
-                    icon: Icons.image_outlined,
-                    title: 'Ignore Static Assets',
-                    subtitle: 'Hide .png, .jpg, .svg, .woff',
-                    trailing: _CustomSwitch(
-                      value: _ignoreStaticAssets,
-                      activeColor: NetSpecterTheme.indigo500,
-                      onChanged: (val) =>
-                          setState(() => _ignoreStaticAssets = val),
-                    ),
-                  ),
-                ]),
-
-                const SizedBox(height: 24),
-                _buildSectionTitle('2. Storage & Memory'),
-                _buildSectionCard([
-                  _SettingsTile(
-                    icon: Icons.storage,
-                    title: 'Max Requests Logged',
-                    subtitle: 'Ring buffer size to save RAM',
-                    trailing: _buildDropdown(
-                      value: _maxRequests,
-                      items: const ['500', '1000', '2000'],
-                      onChanged: (val) => setState(() => _maxRequests = val!),
-                    ),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.cleaning_services_outlined,
-                    title: 'Clear on App Restart',
-                    subtitle: 'Auto wipe logs on fresh start',
-                    trailing: _CustomSwitch(
-                      value: _clearOnRestart,
-                      activeColor: NetSpecterTheme.indigo500,
-                      onChanged: (val) => setState(() => _clearOnRestart = val),
-                    ),
-                  ),
-                ]),
-
-                const SizedBox(height: 24),
-                _buildSectionTitle('3. UI & Behavior'),
+                _buildSectionTitle('1. UI & Behavior'),
                 _buildSectionCard([
                   _SettingsTile(
                     icon: Icons.link,
@@ -158,16 +99,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                         setState(() => _urlDecodeEnabled = val);
                         widget.session.setUrlDecodeEnabled(val);
                       },
-                    ),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.screen_rotation,
-                    title: 'Shake to Open',
-                    subtitle: 'Trigger NetSpecter by shaking',
-                    trailing: _CustomSwitch(
-                      value: _shakeToOpen,
-                      activeColor: NetSpecterTheme.indigo500,
-                      onChanged: (val) => setState(() => _shakeToOpen = val),
                     ),
                   ),
                 ]),
@@ -220,37 +151,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
       ),
     );
   }
-
-  Widget _buildDropdown({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
-      decoration: BoxDecoration(
-        color: NetSpecterTheme.surface,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-          dropdownColor: NetSpecterTheme.surfaceContainer,
-          style: const TextStyle(
-              color: NetSpecterTheme.textSecondary, fontSize: 13),
-          onChanged: onChanged,
-          items: items.map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
 }
 
 class _SettingsTile extends StatelessWidget {
@@ -258,20 +158,17 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget trailing;
-  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.trailing,
-    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
       hoverColor: Colors.white.withValues(alpha: 0.05),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
