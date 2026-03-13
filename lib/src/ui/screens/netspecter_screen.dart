@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../model/http_call_filter.dart';
 import '../../model/index_entry.dart';
 import '../../storage/inspector_session.dart';
 import '../widgets/http_call_tile.dart';
@@ -20,40 +19,14 @@ class NetSpecterScreen extends StatefulWidget {
 }
 
 class _NetSpecterScreenState extends State<NetSpecterScreen> {
-  final TextEditingController _hostController = TextEditingController();
-  final TextEditingController _queryController = TextEditingController();
-
-  String? _selectedMethod;
-  String? _selectedStatus;
+  final TextEditingController _searchController = TextEditingController();
 
   InspectorSession get session => widget.session;
 
   @override
   void dispose() {
-    _hostController.dispose();
-    _queryController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _applyFilters() {
-    session.applyFilter(
-      HttpCallFilter(
-        method: _selectedMethod,
-        statusCode: _selectedStatus == null ? null : int.tryParse(_selectedStatus!),
-        host: _hostController.text.trim().isEmpty ? null : _hostController.text.trim(),
-        query: _queryController.text.trim().isEmpty ? null : _queryController.text.trim(),
-      ),
-    );
-  }
-
-  void _clearFilters() {
-    _hostController.clear();
-    _queryController.clear();
-    setState(() {
-      _selectedMethod = null;
-      _selectedStatus = null;
-    });
-    session.clearFilter();
   }
 
   void _openSettings() {
@@ -66,7 +39,18 @@ class _NetSpecterScreenState extends State<NetSpecterScreen> {
 
   Future<void> _clearAll() async {
     await session.clear();
-    if (mounted) _clearFilters();
+    if (mounted) {
+      _searchController.clear();
+    }
+  }
+
+  void _onSearchSubmitted(String value) {
+    session.startMasterSearch(value);
+  }
+
+  void _onClearSearch() {
+    _searchController.clear();
+    session.cancelMasterSearch();
   }
 
   void _openEntry(BuildContext context, IndexEntry entry) {
@@ -95,15 +79,11 @@ class _NetSpecterScreenState extends State<NetSpecterScreen> {
       ),
       body: Column(
         children: <Widget>[
-          _FilterBar(
-            hostController: _hostController,
-            queryController: _queryController,
-            selectedMethod: _selectedMethod,
-            selectedStatus: _selectedStatus,
-            onMethodChanged: (v) => setState(() => _selectedMethod = v),
-            onStatusChanged: (v) => setState(() => _selectedStatus = v),
-            onApply: _applyFilters,
-            onClear: _clearFilters,
+          _SearchBar(
+            controller: _searchController,
+            session: session,
+            onSubmitted: _onSearchSubmitted,
+            onClear: _onClearSearch,
           ),
           Expanded(
             child: AnimatedBuilder(
@@ -137,25 +117,17 @@ class _NetSpecterScreenState extends State<NetSpecterScreen> {
   }
 }
 
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({
-    required this.hostController,
-    required this.queryController,
-    required this.selectedMethod,
-    required this.selectedStatus,
-    required this.onMethodChanged,
-    required this.onStatusChanged,
-    required this.onApply,
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
+    required this.controller,
+    required this.session,
+    required this.onSubmitted,
     required this.onClear,
   });
 
-  final TextEditingController hostController;
-  final TextEditingController queryController;
-  final String? selectedMethod;
-  final String? selectedStatus;
-  final ValueChanged<String?> onMethodChanged;
-  final ValueChanged<String?> onStatusChanged;
-  final VoidCallback onApply;
+  final TextEditingController controller;
+  final InspectorSession session;
+  final ValueChanged<String> onSubmitted;
   final VoidCallback onClear;
 
   @override
@@ -165,86 +137,43 @@ class _FilterBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             TextField(
-              controller: hostController,
-              decoration: const InputDecoration(
-                labelText: 'Host filter',
+              controller: controller,
+              onSubmitted: onSubmitted,
+              decoration: InputDecoration(
+                labelText: 'Search URL, headers, body, response…',
                 isDense: true,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (session.isScanningBodies || session.isScanningFiles)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Clear search',
+                      onPressed: onClear,
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: queryController,
-              decoration: const InputDecoration(
-                labelText: 'Text query',
-                isDense: true,
-                border: OutlineInputBorder(),
+            const SizedBox(height: 4),
+            if (session.masterQuery != null)
+              Text(
+                'Searching for: "${session.masterQuery}"'
+                '${session.isScanningFiles ? ' (including large bodies...)' : ''}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: selectedMethod,
-                    decoration: const InputDecoration(
-                      labelText: 'Method',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const <DropdownMenuItem<String>>[
-                      DropdownMenuItem(value: 'GET', child: Text('GET')),
-                      DropdownMenuItem(value: 'POST', child: Text('POST')),
-                      DropdownMenuItem(value: 'PUT', child: Text('PUT')),
-                      DropdownMenuItem(value: 'PATCH', child: Text('PATCH')),
-                      DropdownMenuItem(value: 'DELETE', child: Text('DELETE')),
-                    ],
-                    onChanged: onMethodChanged,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const <DropdownMenuItem<String>>[
-                      DropdownMenuItem(value: '200', child: Text('200')),
-                      DropdownMenuItem(value: '201', child: Text('201')),
-                      DropdownMenuItem(value: '400', child: Text('400')),
-                      DropdownMenuItem(value: '401', child: Text('401')),
-                      DropdownMenuItem(value: '404', child: Text('404')),
-                      DropdownMenuItem(value: '500', child: Text('500')),
-                      DropdownMenuItem(value: '503', child: Text('503')),
-                    ],
-                    onChanged: onStatusChanged,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: FilledButton(
-                    onPressed: onApply,
-                    child: const Text('Apply Filters'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onClear,
-                    child: const Text('Clear'),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
