@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/netspecter_controller.dart';
+import 'draggable_fab.dart';
 import '../screens/netspecter_screen.dart';
 
 class NetSpecterOverlay extends StatefulWidget {
@@ -26,22 +27,49 @@ class _NetSpecterOverlayState extends State<NetSpecterOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final padding = mediaQuery.padding;
+    final initPos = Offset(screenSize.width, screenSize.height / 2);
+
     return Stack(
       children: <Widget>[
         widget.child,
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: SafeArea(
-            child: FloatingActionButton.small(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => NetSpecterScreen(specter: widget.specter),
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: false,
+            child: DraggableFab(
+              initPosition: initPos,
+              securityBottom: padding.bottom,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Material(
+                  color: Colors.red,
+                  elevation: 2,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => NetSpecterScreen(
+                            specter: widget.specter,
+                          ),
+                        ),
+                      );
+                    },
+                    customBorder: const CircleBorder(),
+                    child: const Center(
+                      child: Icon(
+                        Icons.bug_report,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                );
-              },
-              child: const Icon(Icons.network_check_outlined),
+                ),
+              ),
             ),
           ),
         ),

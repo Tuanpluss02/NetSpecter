@@ -11,6 +11,6 @@ void main() {
     expect(find.text('Send GET'), findsOneWidget);
     expect(find.text('Send POST'), findsOneWidget);
     expect(find.text('Send Error Request'), findsOneWidget);
-    expect(find.byIcon(Icons.network_check_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.bug_report), findsOneWidget);
   });
 }
