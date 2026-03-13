@@ -1,39 +1,88 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# NetSpecter
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+NetSpecter is a Flutter network inspector package focused on `dio` with disk-backed storage, in-app inspection UI, and a low-friction setup flow.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- Capture `dio` requests, responses, and errors
+- Open an in-app inspector from a draggable floating button
+- Persist captured calls locally with `isar`
+- Inspect overview, request, response, and error details
+- Filter by method, status code, host, and text query
+- Generate cURL and HAR data from captured calls
 
-## Getting started
+## Getting Started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Add the package, then attach the interceptor and wrap your app with `NetSpecterOverlay`.
+
+```yaml
+dependencies:
+  netspecter: ^0.0.1
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+### Minimal setup
 
 ```dart
-const like = 'sample';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:netspecter/netspecter.dart';
+
+void main() {
+  final dio = Dio()..interceptors.add(NetSpecterDioInterceptor());
+
+  runApp(
+    MaterialApp(
+      home: NetSpecterOverlay(
+        child: MyApp(dio: dio),
+      ),
+    ),
+  );
+}
 ```
 
-## Additional information
+This setup uses the shared `NetSpecter.instance` internally, so you do not need to manually create or initialize the inspector in the common case.
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+### What `NetSpecterOverlay` does
+
+`NetSpecterOverlay` adds a draggable floating button on top of your app. Tapping that button opens the NetSpecter inspector UI.
+
+### Advanced usage
+
+If you want a custom instance for tests or special app flows, you can still provide one explicitly:
+
+```dart
+final specter = NetSpecter.withIsar();
+final dio = Dio()..interceptors.add(NetSpecterDioInterceptor(specter));
+
+runApp(
+  MaterialApp(
+    home: NetSpecterOverlay(
+      specter: specter,
+      child: MyApp(dio: dio),
+    ),
+  ),
+);
+```
+
+### Open the example app
+
+See `example/lib/main.dart` for a working integration with:
+
+- `GET` request
+- `POST` request
+- error request
+
+## Current Scope
+
+- Primary client support: `dio`
+- Inspector UI: available in-app
+- Storage: `isar`
+- Intended usage: debug and internal tooling workflows
+
+## Notes
+
+- The default floating trigger is draggable.
+- The current UI is functional-first and may evolve.
+- For a complete runnable integration, check the `example/` app.
