@@ -192,7 +192,7 @@ class InspectorSession extends ChangeNotifier {
     final q = trimmed.toLowerCase();
 
     _masterQuery = trimmed;
-    _masterResults = const [];
+    _masterResults = [];
     _isScanningBodies = false;
     _isScanningFiles = false;
     notifyListeners();
@@ -230,14 +230,13 @@ class InspectorSession extends ChangeNotifier {
     for (final e in allEntries) {
       if (matchesStructured(e)) {
         matchedIds.add(e.id);
+        _masterResults!.add(e);
       }
     }
     if (gen != _searchGeneration) return;
-    _masterResults =
-        allEntries.where((e) => matchedIds.contains(e.id)).toList();
     notifyListeners();
 
-    // Phase 2: in-memory bodies, processed in small async batches.
+    // Phase 2: in-memory bodies, processed in small async batches (append-only for O(1) updates).
     _isScanningBodies = true;
     notifyListeners();
     for (var i = 0; i < allEntries.length; i++) {
@@ -247,8 +246,7 @@ class InspectorSession extends ChangeNotifier {
           !matchedIds.contains(e.id) &&
           matchesInlineBody(e)) {
         matchedIds.add(e.id);
-        _masterResults =
-            allEntries.where((e) => matchedIds.contains(e.id)).toList();
+        _masterResults!.add(e);
         notifyListeners();
       }
       if (i % 20 == 0) {
@@ -259,40 +257,59 @@ class InspectorSession extends ChangeNotifier {
     _isScanningBodies = false;
     notifyListeners();
 
-    // Phase 3: file-backed bodies, uses BodyStore.readBytes + _unpackBodies.
+    // Phase 3: file-backed bodies with parallel batch reading for better performance.
     final filePath = _tempFilePath;
     if (filePath != null) {
       _isScanningFiles = true;
       notifyListeners();
+
+      // Collect all file entries to read.
+      final fileEntries = <(IndexEntry, int, int)>[];
       for (final e in allEntries) {
-        if (gen != _searchGeneration) return;
-        if (e.bodyLocation != BodyLocation.file ||
-            matchedIds.contains(e.id) ||
-            e.fileOffset == null ||
-            e.fileLength == null) {
-          continue;
-        }
-        try {
-          final raw = await BodyStore.readBytes(
-            filePath,
-            e.fileOffset!,
-            e.fileLength!,
-          );
-          final decoded = raw.length > _kComputeThreshold
-              ? await compute(_unpackBodies, raw)
-              : _unpackBodies(raw);
-          final combined =
-              '${decoded.$1 ?? ''}\n${decoded.$2 ?? ''}'.toLowerCase();
-          if (combined.contains(q)) {
-            matchedIds.add(e.id);
-            _masterResults =
-                allEntries.where((e) => matchedIds.contains(e.id)).toList();
-            notifyListeners();
-          }
-        } catch (_) {
-          // Ignore individual file read errors for search.
+        if (e.bodyLocation == BodyLocation.file &&
+            !matchedIds.contains(e.id) &&
+            e.fileOffset != null &&
+            e.fileLength != null) {
+          fileEntries.add((e, e.fileOffset!, e.fileLength!));
         }
       }
+
+      // Process in parallel batches of 4 files.
+      const batchSize = 4;
+      for (var batchStart = 0; batchStart < fileEntries.length; batchStart += batchSize) {
+        if (gen != _searchGeneration) return;
+
+        final batchEnd = (batchStart + batchSize).clamp(0, fileEntries.length);
+        final batch = fileEntries.sublist(batchStart, batchEnd);
+
+        final futures = batch.map((entry) async {
+          try {
+            final (e, offset, length) = entry;
+            final raw = await BodyStore.readBytes(filePath, offset, length);
+            final decoded = raw.length > _kComputeThreshold
+                ? await compute(_unpackBodies, raw)
+                : _unpackBodies(raw);
+            final combined =
+                '${decoded.$1 ?? ''}\n${decoded.$2 ?? ''}'.toLowerCase();
+            if (combined.contains(q)) {
+              return (true, e);
+            }
+          } catch (_) {
+            // Ignore individual file read errors for search.
+          }
+          return (false, null);
+        });
+
+        final results = await Future.wait(futures);
+        for (final (matched, e) in results) {
+          if (matched && e != null && !matchedIds.contains(e.id)) {
+            matchedIds.add(e.id);
+            _masterResults!.add(e);
+            notifyListeners();
+          }
+        }
+      }
+
       if (gen != _searchGeneration) return;
       _isScanningFiles = false;
       notifyListeners();
@@ -422,13 +439,12 @@ class InspectorSession extends ChangeNotifier {
 
   static bool _isBinaryContentType(String? contentType) {
     if (contentType == null) return false;
-    final lower = contentType.toLowerCase();
-    return lower.contains('image/') ||
-        lower.contains('audio/') ||
-        lower.contains('video/') ||
-        lower.contains('application/pdf') ||
-        lower.contains('application/octet-stream') ||
-        lower.contains('application/zip');
+    return contentType.startsWith('image/') ||
+        contentType.startsWith('audio/') ||
+        contentType.startsWith('video/') ||
+        contentType.contains('application/pdf') ||
+        contentType.contains('application/octet-stream') ||
+        contentType.contains('application/zip');
   }
 
   static (String?, String?, bool) _unpackBodies(Uint8List raw) {
