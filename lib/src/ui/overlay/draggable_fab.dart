@@ -7,7 +7,11 @@ import 'package:flutter/material.dart';
 /// Draggable FAB widget which is always aligned to
 /// the edge of the screen - be it left,top, right,bottom
 class DraggableFab extends StatefulWidget {
-  const DraggableFab({required this.child, super.key, this.initPosition, this.securityBottom = 0});
+  const DraggableFab(
+      {required this.child,
+      super.key,
+      this.initPosition,
+      this.securityBottom = 0});
   final Widget child;
   final Offset? initPosition;
   final double securityBottom;
@@ -16,7 +20,8 @@ class DraggableFab extends StatefulWidget {
   State<DraggableFab> createState() => _DraggableFabState();
 }
 
-class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderStateMixin {
+class _DraggableFabState extends State<DraggableFab>
+    with SingleTickerProviderStateMixin {
   late Size _widgetSize;
   double? _left, _top;
   double _screenWidth = 0.0, _screenHeight = 0.0;
@@ -30,8 +35,10 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _getWidgetSize(context));
-    _snapController = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _getWidgetSize(context));
+    _snapController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 220));
     _snapController.addListener(() {
       if (_snapAnimation != null) {
         final v = _snapAnimation!.value;
@@ -64,7 +71,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
     } else {
       // default to right-center if no init provided
       final Size screenSize = MediaQuery.of(context).size;
-      final Offset defaultCenter = Offset(screenSize.width, screenSize.height / 2);
+      final Offset defaultCenter =
+          Offset(screenSize.width, screenSize.height / 2);
       final snapped = _computeSnapped(defaultCenter);
       _left = snapped.dx;
       _top = snapped.dy;
@@ -102,7 +110,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
                     _snapAnimation = Tween<Offset>(
                       begin: pos,
                       end: target,
-                    ).animate(CurvedAnimation(parent: _snapController, curve: Curves.easeOutCubic));
+                    ).animate(CurvedAnimation(
+                        parent: _snapController, curve: Curves.easeOutCubic));
                     _snapController
                       ..reset()
                       ..forward();
@@ -147,7 +156,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
       case Anchor.TOP_FIRST:
         left = max(
           0,
-          min(_screenWidth - _widgetSize.width, targetOffset.dx - _widgetSize.width / 2),
+          min(_screenWidth - _widgetSize.width,
+              targetOffset.dx - _widgetSize.width / 2),
         );
         top = 0;
         break;
@@ -164,7 +174,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
       case Anchor.TOP_SECOND:
         left = max(
           0,
-          min(_screenWidth - _widgetSize.width, targetOffset.dx - _widgetSize.width / 2),
+          min(_screenWidth - _widgetSize.width,
+              targetOffset.dx - _widgetSize.width / 2),
         );
         top = 0;
         break;
@@ -181,7 +192,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
       case Anchor.BOTTOM_THIRD:
         left = max(
           0,
-          min(_screenWidth - _widgetSize.width, targetOffset.dx - _widgetSize.width / 2),
+          min(_screenWidth - _widgetSize.width,
+              targetOffset.dx - _widgetSize.width / 2),
         );
         top = _screenHeight - _widgetSize.height - widget.securityBottom;
         break;
@@ -198,7 +210,8 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
       case Anchor.BOTTOM_FOURTH:
         left = max(
           0,
-          min(_screenWidth - _widgetSize.width, targetOffset.dx - _widgetSize.width / 2),
+          min(_screenWidth - _widgetSize.width,
+              targetOffset.dx - _widgetSize.width / 2),
         );
         top = _screenHeight - _widgetSize.height - widget.securityBottom;
         break;
@@ -210,10 +223,16 @@ class _DraggableFabState extends State<DraggableFab> with SingleTickerProviderSt
   Anchor _getAnchor(Offset position) {
     if (position.dx < _screenWidthMid! && position.dy < _screenHeightMid!) {
       return position.dx < position.dy ? Anchor.LEFT_FIRST : Anchor.TOP_FIRST;
-    } else if (position.dx >= _screenWidthMid! && position.dy < _screenHeightMid!) {
-      return _screenWidth - position.dx < position.dy ? Anchor.RIGHT_SECOND : Anchor.TOP_SECOND;
-    } else if (position.dx < _screenWidthMid! && position.dy >= _screenHeightMid!) {
-      return position.dx < _screenHeight - position.dy ? Anchor.LEFT_THIRD : Anchor.BOTTOM_THIRD;
+    } else if (position.dx >= _screenWidthMid! &&
+        position.dy < _screenHeightMid!) {
+      return _screenWidth - position.dx < position.dy
+          ? Anchor.RIGHT_SECOND
+          : Anchor.TOP_SECOND;
+    } else if (position.dx < _screenWidthMid! &&
+        position.dy >= _screenHeightMid!) {
+      return position.dx < _screenHeight - position.dy
+          ? Anchor.LEFT_THIRD
+          : Anchor.BOTTOM_THIRD;
     } else {
       return _screenWidth - position.dx < _screenHeight - position.dy
           ? Anchor.RIGHT_FOURTH

@@ -45,6 +45,7 @@ class InspectorSession extends ChangeNotifier {
   bool _initialized = false;
   bool _enabled = true;
   bool _clearing = false;
+  bool _urlDecodeEnabled = false;
 
   /// Captures sent to the isolate but not yet returned as [IndexEntry].
   int _inFlight = 0;
@@ -69,9 +70,11 @@ class InspectorSession extends ChangeNotifier {
     }
     return _memoryIndex.filtered(_filter);
   }
+
   int get totalEntries => _memoryIndex.length;
   int get droppedCount => _droppedCount;
   bool get isEnabled => _enabled;
+  bool get urlDecodeEnabled => _urlDecodeEnabled;
 
   String? get masterQuery => _masterQuery;
   bool get isMasterSearchActive => _masterQuery != null;
@@ -102,6 +105,7 @@ class InspectorSession extends ChangeNotifier {
     // Flush captures buffered before the isolate was ready.
     // Runs synchronously (no awaits) so no new record() call can interleave.
     _droppedCount += _preInitQueue.droppedCount;
+    _urlDecodeEnabled = settings.urlDecodeEnabled;
     RawCapture? pending;
     while ((pending = _preInitQueue.removeFirstOrNull()) != null) {
       _sendCapture(pending!);
@@ -127,6 +131,14 @@ class InspectorSession extends ChangeNotifier {
   /// silently dropped. Useful for hiding sensitive screens (e.g. payment flows).
   void disable() {
     _enabled = false;
+  }
+
+  /// Toggles URL decoding for the UI views.
+  void setUrlDecodeEnabled(bool value) {
+    if (_urlDecodeEnabled != value) {
+      _urlDecodeEnabled = value;
+      notifyListeners();
+    }
   }
 
   /// Fire-and-forget: enqueue a [RawCapture] for background processing.
@@ -220,8 +232,8 @@ class InspectorSession extends ChangeNotifier {
       final req =
           _decodeBody(e.inlineRequestBody, e.requestContentType)?.toLowerCase();
       if (req != null && req.contains(q)) return true;
-      final res =
-          _decodeBody(e.inlineResponseBody, e.responseContentType)?.toLowerCase();
+      final res = _decodeBody(e.inlineResponseBody, e.responseContentType)
+          ?.toLowerCase();
       if (res != null && res.contains(q)) return true;
       return false;
     }
@@ -276,7 +288,9 @@ class InspectorSession extends ChangeNotifier {
 
       // Process in parallel batches of 4 files.
       const batchSize = 4;
-      for (var batchStart = 0; batchStart < fileEntries.length; batchStart += batchSize) {
+      for (var batchStart = 0;
+          batchStart < fileEntries.length;
+          batchStart += batchSize) {
         if (gen != _searchGeneration) return;
 
         final batchEnd = (batchStart + batchSize).clamp(0, fileEntries.length);

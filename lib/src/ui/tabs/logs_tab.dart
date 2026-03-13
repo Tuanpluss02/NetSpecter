@@ -71,7 +71,8 @@ const _mockLogs = [
   },
   {
     'time': '14:05:15',
-    'message': 'Unhandled Exception: Null check operator used on a null value\n at _ProfileState.build (profile_screen.dart:42)',
+    'message':
+        'Unhandled Exception: Null check operator used on a null value\n at _ProfileState.build (profile_screen.dart:42)',
     'type': 'error',
   },
   {

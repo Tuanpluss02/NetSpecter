@@ -27,6 +27,6 @@ export 'src/export/har_exporter.dart';
 // UI
 export 'src/ui/overlay/netspecter_overlay.dart' show NetSpecterOverlay;
 export 'src/ui/screens/netspecter_screen.dart';
-export 'src/ui/detail/request_detail_overlay.dart';
+export 'src/ui/detail/request_detail_page.dart';
 export 'src/ui/settings/settings_bottom_sheet.dart';
 export 'src/ui/widgets/json_viewer.dart';

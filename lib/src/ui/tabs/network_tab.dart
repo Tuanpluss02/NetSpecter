@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
-import 'package:netspecter/src/ui/detail/request_detail_overlay.dart';
+import 'package:netspecter/src/ui/detail/request_detail_page.dart';
 import '../../storage/inspector_session.dart';
 
 class NetworkTab extends StatelessWidget {
@@ -58,16 +58,16 @@ class NetworkTab extends StatelessWidget {
               ),
             ),
           ),
-          
+
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.05)),
-          
+
           // Request List
           Expanded(
             child: AnimatedBuilder(
               animation: session,
               builder: (context, _) {
                 final entries = session.entries;
-                
+
                 if (entries.isEmpty) {
                   return const Center(
                     child: Text(
@@ -85,34 +85,30 @@ class NetworkTab extends StatelessWidget {
                   ),
                   itemBuilder: (context, index) {
                     final req = entries[index];
-                    
+
                     // Format time
-                    final time = '${req.timestamp.hour.toString().padLeft(2, '0')}:${req.timestamp.minute.toString().padLeft(2, '0')}:${req.timestamp.second.toString().padLeft(2, '0')}';
-                    final path = Uri.tryParse(req.url)?.path ?? req.url;
+                    final time =
+                        '${req.timestamp.hour.toString().padLeft(2, '0')}:${req.timestamp.minute.toString().padLeft(2, '0')}:${req.timestamp.second.toString().padLeft(2, '0')}';
+                    String displayUrl = req.url;
+                    if (session.urlDecodeEnabled) {
+                      try {
+                        displayUrl = Uri.decodeFull(req.url);
+                      } catch (_) {}
+                    }
 
                     return _RequestLogItem(
                       method: req.method,
-                      path: path,
+                      url: displayUrl,
                       time: time,
                       duration: '${req.durationMs}ms',
                       status: req.statusCode,
                       onTap: () {
-                        // Open Detail Overlay with slide up transition
-                        Navigator.of(context).push(PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) => RequestDetailOverlay(
+                        // Open Detail Page
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => RequestDetailPage(
                             entry: req,
                             session: session,
                           ),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            const begin = Offset(0.0, 1.0);
-                            const end = Offset.zero;
-                            const curve = Curves.easeOutCubic;
-                            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                            return SlideTransition(
-                              position: animation.drive(tween),
-                              child: child,
-                            );
-                          },
                         ));
                       },
                     );
@@ -129,7 +125,7 @@ class NetworkTab extends StatelessWidget {
 
 class _RequestLogItem extends StatelessWidget {
   final String method;
-  final String path;
+  final String url;
   final String time;
   final String duration;
   final int status;
@@ -137,7 +133,7 @@ class _RequestLogItem extends StatelessWidget {
 
   const _RequestLogItem({
     required this.method,
-    required this.path,
+    required this.url,
     required this.time,
     required this.duration,
     required this.status,
@@ -183,14 +179,14 @@ class _RequestLogItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    path,
+                    url,
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: NetSpecterTheme.textSecondary,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
@@ -207,7 +203,8 @@ class _RequestLogItem extends StatelessWidget {
             const SizedBox(width: 12),
             // Status Badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
                 color: sStyle.bg,
                 borderRadius: BorderRadius.circular(12.0),
@@ -228,5 +225,3 @@ class _RequestLogItem extends StatelessWidget {
     );
   }
 }
-
-

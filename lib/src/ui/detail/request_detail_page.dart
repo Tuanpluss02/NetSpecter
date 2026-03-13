@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
@@ -9,21 +10,21 @@ import '../../model/index_entry.dart';
 import '../../model/request_record.dart';
 import '../../storage/inspector_session.dart';
 
-class RequestDetailOverlay extends StatefulWidget {
+class RequestDetailPage extends StatefulWidget {
   final IndexEntry entry;
   final InspectorSession session;
 
-  const RequestDetailOverlay({
-    super.key, 
+  const RequestDetailPage({
+    super.key,
     required this.entry,
     required this.session,
   });
 
   @override
-  State<RequestDetailOverlay> createState() => _RequestDetailOverlayState();
+  State<RequestDetailPage> createState() => _RequestDetailPageState();
 }
 
-class _RequestDetailOverlayState extends State<RequestDetailOverlay>
+class _RequestDetailPageState extends State<RequestDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
@@ -67,11 +68,23 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
     final entry = widget.entry;
     final isWs = entry.method == 'WS';
     final sStyle = NetSpecterTheme.getStatusStyle(entry.statusCode);
-    final path = Uri.tryParse(entry.url)?.path ?? entry.url;
+
+    String displayUrl = entry.url;
+    if (widget.session.urlDecodeEnabled) {
+      try {
+        displayUrl = Uri.decodeFull(entry.url);
+      } catch (_) {}
+    }
+
+    final path = Uri.tryParse(displayUrl)?.path ?? displayUrl;
 
     return Scaffold(
       backgroundColor: NetSpecterTheme.surface,
       appBar: AppBar(
+        backgroundColor: NetSpecterTheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: NetSpecterTheme.textSecondary),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -81,6 +94,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
           style: const TextStyle(
             fontFamily: 'monospace',
             fontSize: 14,
+            color: NetSpecterTheme.textPrimary,
           ),
         ),
         actions: [
@@ -102,39 +116,14 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48.0),
-          child: Column(
-            children: [
-              Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
-              TabBar(
-                controller: _tabController,
-                indicatorColor: NetSpecterTheme.indigo500,
-                labelColor: NetSpecterTheme.indigo400,
-                unselectedLabelColor: NetSpecterTheme.textQuaternary,
-                isScrollable: true,
-                tabs: isWs
-                    ? const [
-                        Tab(text: 'Overview'),
-                        Tab(text: 'Messages'),
-                      ]
-                    : const [
-                        Tab(text: 'Overview'),
-                        Tab(text: 'Request'),
-                        Tab(text: 'Response'),
-                        Tab(text: 'Error'),
-                      ],
-              ),
-            ],
-          ),
-        ),
       ),
       body: FutureBuilder<RequestRecord>(
         future: _recordFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
-              child: CircularProgressIndicator(color: NetSpecterTheme.indigo500),
+              child:
+                  CircularProgressIndicator(color: NetSpecterTheme.indigo500),
             );
           }
           if (snapshot.hasError) {
@@ -160,8 +149,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
             effectiveIndex = 0;
           }
 
-          final active =
-              totalMatches == 0 ? null : matches[effectiveIndex];
+          final active = totalMatches == 0 ? null : matches[effectiveIndex];
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (active != null &&
@@ -172,6 +160,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
           });
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Detail Search Bar
               Container(
@@ -275,6 +264,35 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
                   ],
                 ),
               ),
+              // TabBar
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: NetSpecterTheme.indigo500,
+                  labelColor: NetSpecterTheme.indigo400,
+                  unselectedLabelColor: NetSpecterTheme.textQuaternary,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: isWs
+                      ? const [
+                          Tab(text: 'Overview'),
+                          Tab(text: 'Messages'),
+                        ]
+                      : const [
+                          Tab(text: 'Overview'),
+                          Tab(text: 'Request'),
+                          Tab(text: 'Response'),
+                          Tab(text: 'Messages'),
+                        ],
+                ),
+              ),
               Expanded(
                 child: Stack(
                   children: [
@@ -289,6 +307,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
                               _buildOverviewTab(record, active),
                               _buildRequestTab(record, active),
                               _buildResponseTab(record, active),
+                              // Using _buildErrorTab for Messages (or whatever Error tab was)
                               _buildErrorTab(record, active),
                             ],
                     ),
@@ -332,10 +351,18 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
   Widget _buildOverviewTab(RequestRecord record, _DetailMatch? active) {
     final mStyle = NetSpecterTheme.getMethodStyle(record.method);
 
+    String displayUrl = record.url;
+    if (widget.session.urlDecodeEnabled) {
+      try {
+        displayUrl = Uri.decodeFull(record.url);
+      } catch (_) {}
+    }
+
     return ListView(
-      padding: const EdgeInsets.all(16.0).copyWith(bottom: 100), // padding for FAB
+      padding:
+          const EdgeInsets.all(16.0).copyWith(bottom: 100), // padding for FAB
       children: [
-        _buildOverviewRow('URL', record.url,
+        _buildOverviewRow('URL', displayUrl,
             highlight: _isActive(active, 0, _DetailSection.overviewUrl)),
         const SizedBox(height: 16),
         _buildOverviewRow(
@@ -347,8 +374,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
-          highlight:
-              _isActive(active, 0, _DetailSection.overviewMethod),
+          highlight: _isActive(active, 0, _DetailSection.overviewMethod),
         ),
         const SizedBox(height: 16),
         _buildOverviewRow(
@@ -377,8 +403,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
               color: NetSpecterTheme.yellow400,
               fontSize: 12,
             ),
-            highlight:
-                _isActive(active, 0, _DetailSection.overviewNote),
+            highlight: _isActive(active, 0, _DetailSection.overviewNote),
           ),
         ],
       ],
@@ -426,8 +451,7 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
                       color: NetSpecterTheme.textSecondary,
                     ))
                 .copyWith(
-              backgroundColor:
-                  highlight ? const Color(0x40FFF59D) : null,
+              backgroundColor: highlight ? const Color(0x40FFF59D) : null,
             ),
             key: key,
           ),
@@ -443,16 +467,13 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
         _buildSectionHeader('Request Headers'),
         _buildJsonBox(
           record.requestHeaders,
-          highlight:
-              _isActive(active, 1, _DetailSection.requestHeaders),
+          highlight: _isActive(active, 1, _DetailSection.requestHeaders),
         ),
         const SizedBox(height: 24),
-        _buildSectionHeader('Request Body',
-            color: NetSpecterTheme.indigo400),
+        _buildSectionHeader('Request Body', color: NetSpecterTheme.indigo400),
         _buildJsonBox(
           _tryParseJson(record.requestBodyPreview),
-          highlight:
-              _isActive(active, 1, _DetailSection.requestBody),
+          highlight: _isActive(active, 1, _DetailSection.requestBody),
         ),
       ],
     );
@@ -465,16 +486,13 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
         _buildSectionHeader('Response Headers'),
         _buildJsonBox(
           record.responseHeaders,
-          highlight:
-              _isActive(active, 2, _DetailSection.responseHeaders),
+          highlight: _isActive(active, 2, _DetailSection.responseHeaders),
         ),
         const SizedBox(height: 24),
-        _buildSectionHeader('Response Body',
-            color: NetSpecterTheme.green400),
+        _buildSectionHeader('Response Body', color: NetSpecterTheme.green400),
         _buildJsonBox(
           _tryParseJson(record.responseBodyPreview),
-          highlight:
-              _isActive(active, 2, _DetailSection.responseBody),
+          highlight: _isActive(active, 2, _DetailSection.responseBody),
         ),
       ],
     );
@@ -484,20 +502,16 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
     return ListView(
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
-        _buildSectionHeader('Error Type',
-            color: NetSpecterTheme.yellow400),
+        _buildSectionHeader('Error Type', color: NetSpecterTheme.yellow400),
         _buildJsonBox(
           record.errorType ?? 'None',
-          highlight:
-              _isActive(active, 3, _DetailSection.errorType),
+          highlight: _isActive(active, 3, _DetailSection.errorType),
         ),
         const SizedBox(height: 24),
-        _buildSectionHeader('Error Message',
-            color: NetSpecterTheme.yellow400),
+        _buildSectionHeader('Error Message', color: NetSpecterTheme.yellow400),
         _buildJsonBox(
           record.errorMessage ?? 'None',
-          highlight:
-              _isActive(active, 3, _DetailSection.errorMessage),
+          highlight: _isActive(active, 3, _DetailSection.errorMessage),
         ),
       ],
     );
@@ -508,7 +522,9 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
     final messages = [];
 
     if (messages.isEmpty) {
-      return const Center(child: Text('No WebSocket messages captured.', style: TextStyle(color: NetSpecterTheme.textMuted)));
+      return const Center(
+          child: Text('No WebSocket messages captured.',
+              style: TextStyle(color: NetSpecterTheme.textMuted)));
     }
 
     return ListView.builder(
@@ -531,10 +547,12 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 2.0),
                   decoration: BoxDecoration(
                     color: NetSpecterTheme.green500.withValues(alpha: 0.1),
-                    border: Border.all(color: NetSpecterTheme.green500.withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: NetSpecterTheme.green500.withValues(alpha: 0.2)),
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                   child: const Text(
@@ -553,9 +571,12 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
 
         final msg = messages[index - 1];
         final isOut = msg['type'] == 'out';
-        final iconColor = isOut ? NetSpecterTheme.green400 : NetSpecterTheme.blue400;
+        final iconColor =
+            isOut ? NetSpecterTheme.green400 : NetSpecterTheme.blue400;
         final icon = isOut ? Icons.call_made : Icons.call_received;
-        final bgColor = isOut ? NetSpecterTheme.green500.withValues(alpha: 0.1) : NetSpecterTheme.blue500.withValues(alpha: 0.1);
+        final bgColor = isOut
+            ? NetSpecterTheme.green500.withValues(alpha: 0.1)
+            : NetSpecterTheme.blue500.withValues(alpha: 0.1);
         final label = isOut ? 'SENT' : 'RECV';
 
         return Container(
@@ -569,11 +590,13 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                 decoration: BoxDecoration(
                   color: bgColor,
                   border: Border(
-                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                    bottom:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                 ),
                 child: Row(
@@ -665,7 +688,8 @@ class _RequestDetailOverlayState extends State<RequestDetailOverlay>
           top: 8,
           right: 8,
           child: IconButton(
-            icon: const Icon(Icons.copy, size: 16, color: NetSpecterTheme.textMuted),
+            icon: const Icon(Icons.copy,
+                size: 16, color: NetSpecterTheme.textMuted),
             onPressed: () {
               Clipboard.setData(const ClipboardData(text: '...'));
               ToastNotification.show(context, 'Copied!');

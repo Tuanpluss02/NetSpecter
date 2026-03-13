@@ -232,7 +232,8 @@ Future<IndexEntry> _processCapture(
 Uint8List? _maybeTruncate(Uint8List? bytes, int maxBytes, int previewLen) {
   if (bytes == null || bytes.isEmpty) return null;
   if (bytes.length <= maxBytes) return bytes;
-  return bytes.sublist(0, previewLen < bytes.length ? previewLen : bytes.length);
+  return bytes.sublist(
+      0, previewLen < bytes.length ? previewLen : bytes.length);
 }
 
 class _PackedBodies {
@@ -252,7 +253,8 @@ _PackedBodies _packBodies(
   Uint8List truncate(Uint8List bytes) {
     if (bytes.length <= maxBody) return bytes;
     truncated = true;
-    return bytes.sublist(0, previewLen < bytes.length ? previewLen : bytes.length);
+    return bytes.sublist(
+        0, previewLen < bytes.length ? previewLen : bytes.length);
   }
 
   final reqData = req != null && req.isNotEmpty ? truncate(req) : null;
@@ -265,5 +267,6 @@ _PackedBodies _packBodies(
   };
 
   final encoded = utf8.encode(jsonEncode(map));
-  return _PackedBodies(bytes: Uint8List.fromList(encoded), truncated: truncated);
+  return _PackedBodies(
+      bytes: Uint8List.fromList(encoded), truncated: truncated);
 }

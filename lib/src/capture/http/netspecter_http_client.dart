@@ -120,8 +120,7 @@ class NetSpecterHttpClient extends http.BaseClient {
       if (recorded) return;
       recorded = true;
       final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
-      final captured =
-          captureBuffer.isEmpty ? null : captureBuffer.toBytes();
+      final captured = captureBuffer.isEmpty ? null : captureBuffer.toBytes();
       session.record(RawCapture(
         id: id,
         method: request.method,

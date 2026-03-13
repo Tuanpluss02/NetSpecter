@@ -102,13 +102,28 @@ class _JsonNodeState extends State<_JsonNode> {
             style: TextStyle(color: _JsonViewerState._punctuationColor));
 
     if (widget.value == null) {
-      return _buildLine(keyHtml, const TextSpan(text: 'null', style: TextStyle(color: _JsonViewerState._nullColor)), comma);
+      return _buildLine(
+          keyHtml,
+          const TextSpan(
+              text: 'null',
+              style: TextStyle(color: _JsonViewerState._nullColor)),
+          comma);
     }
     if (widget.value is bool) {
-      return _buildLine(keyHtml, TextSpan(text: widget.value.toString(), style: const TextStyle(color: _JsonViewerState._boolColor)), comma);
+      return _buildLine(
+          keyHtml,
+          TextSpan(
+              text: widget.value.toString(),
+              style: const TextStyle(color: _JsonViewerState._boolColor)),
+          comma);
     }
     if (widget.value is num) {
-      return _buildLine(keyHtml, TextSpan(text: widget.value.toString(), style: const TextStyle(color: _JsonViewerState._numberColor)), comma);
+      return _buildLine(
+          keyHtml,
+          TextSpan(
+              text: widget.value.toString(),
+              style: const TextStyle(color: _JsonViewerState._numberColor)),
+          comma);
     }
     if (widget.value is String) {
       final text = widget.value as String;
@@ -169,25 +184,39 @@ class _JsonNodeState extends State<_JsonNode> {
     if (widget.value is List) {
       final list = widget.value as List;
       if (list.isEmpty) {
-        return _buildLine(keyHtml, const TextSpan(text: '[]', style: TextStyle(color: _JsonViewerState._punctuationColor)), comma);
+        return _buildLine(
+            keyHtml,
+            const TextSpan(
+                text: '[]',
+                style: TextStyle(color: _JsonViewerState._punctuationColor)),
+            comma);
       }
       return _buildCollapsible(
-          keyHtml: keyHtml,
-          openBracket: '[',
-          closeBracket: ']',
-          comma: comma,
-          children: list.asMap().entries.map((e) => _JsonNode(
-                value: e.value,
-                isLast: e.key == list.length - 1,
-                searchQuery: widget.searchQuery,
-              )).toList(),
+        keyHtml: keyHtml,
+        openBracket: '[',
+        closeBracket: ']',
+        comma: comma,
+        children: list
+            .asMap()
+            .entries
+            .map((e) => _JsonNode(
+                  value: e.value,
+                  isLast: e.key == list.length - 1,
+                  searchQuery: widget.searchQuery,
+                ))
+            .toList(),
       );
     }
 
     if (widget.value is Map) {
       final map = widget.value as Map;
       if (map.isEmpty) {
-        return _buildLine(keyHtml, const TextSpan(text: '{}', style: TextStyle(color: _JsonViewerState._punctuationColor)), comma);
+        return _buildLine(
+            keyHtml,
+            const TextSpan(
+                text: '{}',
+                style: TextStyle(color: _JsonViewerState._punctuationColor)),
+            comma);
       }
       final entries = map.entries.toList();
       return _buildCollapsible(
@@ -195,12 +224,16 @@ class _JsonNodeState extends State<_JsonNode> {
         openBracket: '{',
         closeBracket: '}',
         comma: comma,
-        children: entries.asMap().entries.map((e) => _JsonNode(
-              nodeKey: e.value.key.toString(),
-              value: e.value.value,
-              isLast: e.key == entries.length - 1,
-              searchQuery: widget.searchQuery,
-            )).toList(),
+        children: entries
+            .asMap()
+            .entries
+            .map((e) => _JsonNode(
+                  nodeKey: e.value.key.toString(),
+                  value: e.value.value,
+                  isLast: e.key == entries.length - 1,
+                  searchQuery: widget.searchQuery,
+                ))
+            .toList(),
       );
     }
 
@@ -240,7 +273,8 @@ class _JsonNodeState extends State<_JsonNode> {
               children: [
                 Transform.rotate(
                   angle: _isExpanded ? 0 : -1.5708, // 0 or -90 deg
-                  child: const Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
+                  child: const Icon(Icons.arrow_drop_down,
+                      size: 16, color: Colors.grey),
                 ),
                 RichText(
                   text: TextSpan(
@@ -249,7 +283,8 @@ class _JsonNodeState extends State<_JsonNode> {
                       keyHtml,
                       TextSpan(
                         text: openBracket,
-                        style: const TextStyle(color: _JsonViewerState._punctuationColor),
+                        style: const TextStyle(
+                            color: _JsonViewerState._punctuationColor),
                       ),
                       if (!_isExpanded)
                         const TextSpan(
@@ -259,7 +294,8 @@ class _JsonNodeState extends State<_JsonNode> {
                       if (!_isExpanded)
                         TextSpan(
                           text: closeBracket,
-                          style: const TextStyle(color: _JsonViewerState._punctuationColor),
+                          style: const TextStyle(
+                              color: _JsonViewerState._punctuationColor),
                         ),
                       if (!_isExpanded) comma,
                     ],
@@ -291,7 +327,8 @@ class _JsonNodeState extends State<_JsonNode> {
                 children: [
                   TextSpan(
                     text: closeBracket,
-                    style: const TextStyle(color: _JsonViewerState._punctuationColor),
+                    style: const TextStyle(
+                        color: _JsonViewerState._punctuationColor),
                   ),
                   comma,
                 ],

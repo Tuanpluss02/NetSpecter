@@ -35,7 +35,7 @@ class _NetSpecterScreenState extends State<NetSpecterScreen> {
   }
 
   void _showSettings() {
-    SettingsBottomSheet.show(context);
+    SettingsBottomSheet.show(context, widget.session);
   }
 
   void _clearLogs() {

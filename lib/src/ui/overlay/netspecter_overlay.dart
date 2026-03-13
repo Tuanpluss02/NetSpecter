@@ -189,7 +189,8 @@ class _NetSpecterOverlayState extends State<NetSpecterOverlay> {
 GlobalKey<NavigatorState>? _registeredNavigatorKey;
 
 /// Read-only access for [NetSpecter.showInspector].
-GlobalKey<NavigatorState>? get registeredNavigatorKey => _registeredNavigatorKey;
+GlobalKey<NavigatorState>? get registeredNavigatorKey =>
+    _registeredNavigatorKey;
 
 /// True while the inspector screen is on the navigation stack.
 ///

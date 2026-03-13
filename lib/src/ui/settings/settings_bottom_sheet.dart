@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
+import '../../storage/inspector_session.dart';
 
 class SettingsBottomSheet extends StatefulWidget {
-  const SettingsBottomSheet({super.key});
+  final InspectorSession session;
 
-  static Future<void> show(BuildContext context) {
+  const SettingsBottomSheet({super.key, required this.session});
+
+  static Future<void> show(BuildContext context, InspectorSession session) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const SettingsBottomSheet(),
+      builder: (context) => SettingsBottomSheet(session: session),
     );
   }
 
@@ -21,9 +24,16 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   bool _ignoreStaticAssets = true;
   String _maxRequests = '1000';
   bool _clearOnRestart = false;
-  String _networkThrottling = 'Off';
-  bool _mockingEnabled = true;
   bool _shakeToOpen = true;
+  bool _urlDecodeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Assuming you want to read actual settings for other fields eventually,
+    // right now just initialize URL decoding correctly.
+    _urlDecodeEnabled = widget.session.urlDecodeEnabled;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +50,11 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
             padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
             decoration: BoxDecoration(
               color: NetSpecterTheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-              border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24.0)),
+              border: Border(
+                  bottom:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.05))),
             ),
             child: Column(
               children: [
@@ -61,7 +74,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     children: [
                       const Text(
                         'Settings',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -76,7 +90,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
               ],
             ),
           ),
-          
+
           // Content
           Expanded(
             child: ListView(
@@ -88,7 +102,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     icon: Icons.public,
                     title: 'Ignored Domains',
                     subtitle: 'Exclude specific URLs from logging',
-                    trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.grey),
                     onTap: () {},
                   ),
                   _SettingsTile(
@@ -98,11 +113,12 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     trailing: _CustomSwitch(
                       value: _ignoreStaticAssets,
                       activeColor: NetSpecterTheme.indigo500,
-                      onChanged: (val) => setState(() => _ignoreStaticAssets = val),
+                      onChanged: (val) =>
+                          setState(() => _ignoreStaticAssets = val),
                     ),
                   ),
                 ]),
-                
+
                 const SizedBox(height: 24),
                 _buildSectionTitle('2. Storage & Memory'),
                 _buildSectionCard([
@@ -129,36 +145,21 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                 ]),
 
                 const SizedBox(height: 24),
-                _buildSectionTitle('3. Advanced Tools'),
+                _buildSectionTitle('3. UI & Behavior'),
                 _buildSectionCard([
                   _SettingsTile(
-                    icon: Icons.hourglass_bottom,
-                    title: 'Network Throttling',
-                    subtitle: 'Simulate slow connection',
-                    trailing: _buildDropdown(
-                      value: _networkThrottling,
-                      items: const ['Off', 'Delay +500ms', 'Delay +2000ms'],
-                      onChanged: (val) => setState(() => _networkThrottling = val!),
-                    ),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.auto_fix_high,
-                    title: 'Enable Response Mocking',
-                    subtitle: 'Allow overriding API responses',
-                    titleColor: NetSpecterTheme.purple100,
-                    subtitleColor: NetSpecterTheme.purple300,
-                    iconColor: NetSpecterTheme.purple400,
+                    icon: Icons.link,
+                    title: 'URL Decoding',
+                    subtitle: 'Decode URL endpoints in list & detail',
                     trailing: _CustomSwitch(
-                      value: _mockingEnabled,
-                      activeColor: NetSpecterTheme.purple500,
-                      onChanged: (val) => setState(() => _mockingEnabled = val),
+                      value: _urlDecodeEnabled,
+                      activeColor: NetSpecterTheme.indigo500,
+                      onChanged: (val) {
+                        setState(() => _urlDecodeEnabled = val);
+                        widget.session.setUrlDecodeEnabled(val);
+                      },
                     ),
                   ),
-                ]),
-
-                const SizedBox(height: 24),
-                _buildSectionTitle('4. UI & Behavior'),
-                _buildSectionCard([
                   _SettingsTile(
                     icon: Icons.screen_rotation,
                     title: 'Shake to Open',
@@ -170,7 +171,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     ),
                   ),
                 ]),
-                
+
                 const SizedBox(height: 48), // Padding bottom
               ],
             ),
@@ -237,7 +238,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
           value: value,
           icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
           dropdownColor: NetSpecterTheme.surfaceContainer,
-          style: const TextStyle(color: NetSpecterTheme.textSecondary, fontSize: 13),
+          style: const TextStyle(
+              color: NetSpecterTheme.textSecondary, fontSize: 13),
           onChanged: onChanged,
           items: items.map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(
@@ -257,9 +259,6 @@ class _SettingsTile extends StatelessWidget {
   final String subtitle;
   final Widget trailing;
   final VoidCallback? onTap;
-  final Color? titleColor;
-  final Color? subtitleColor;
-  final Color? iconColor;
 
   const _SettingsTile({
     required this.icon,
@@ -267,9 +266,6 @@ class _SettingsTile extends StatelessWidget {
     required this.subtitle,
     required this.trailing,
     this.onTap,
-    this.titleColor,
-    this.subtitleColor,
-    this.iconColor,
   });
 
   @override
@@ -281,7 +277,7 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            Icon(icon, color: iconColor ?? Colors.grey[400], size: 20),
+            Icon(icon, color: Colors.grey[400], size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -289,18 +285,18 @@ class _SettingsTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: titleColor ?? NetSpecterTheme.textPrimary,
+                      color: NetSpecterTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: subtitleColor ?? NetSpecterTheme.textMuted,
+                      color: NetSpecterTheme.textMuted,
                     ),
                   ),
                 ],
