@@ -8,6 +8,8 @@ class RequestRecord {
     required this.url,
     required this.statusCode,
     required this.durationMs,
+    required this.requestSizeBytes,
+    required this.responseSizeBytes,
     required this.timestamp,
     required this.requestHeaders,
     required this.responseHeaders,
@@ -25,6 +27,8 @@ class RequestRecord {
   final String url;
   final int statusCode;
   final int durationMs;
+  final int requestSizeBytes;
+  final int responseSizeBytes;
   final DateTime timestamp;
   final Map<String, String> requestHeaders;
   final Map<String, String> responseHeaders;

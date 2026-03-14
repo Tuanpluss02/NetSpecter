@@ -1,4 +1,4 @@
-import '../model/request_record.dart';
+import 'package:netspecter/netspecter.dart';
 
 class CurlGenerator {
   const CurlGenerator._();
@@ -9,15 +9,22 @@ class CurlGenerator {
     buffer.write(' -X ${record.method}');
 
     for (final entry in record.requestHeaders.entries) {
-      buffer.write(" -H '${entry.key}: ${entry.value}'");
+      buffer.write(" -H '${_escapeShell('${entry.key}: ${entry.value}')}'");
     }
 
     final body = record.requestBodyPreview;
-    if (body != null && body.isNotEmpty) {
-      buffer.write(" --data '$body'");
+    if (body != null && body.isNotEmpty && !body.startsWith('[')) {
+      buffer.write(" --data-raw '${_escapeShell(body)}'");
     }
 
-    buffer.write(" '${record.url}'");
+    final acceptEncoding = record.requestHeaders['accept-encoding'];
+    if (acceptEncoding != null && acceptEncoding.contains('gzip')) {
+      buffer.write(' --compressed');
+    }
+
+    buffer.write(" '${_escapeShell(record.url)}'");
     return buffer.toString();
   }
+
+  static String _escapeShell(String value) => value.replaceAll("'", "'\\''");
 }

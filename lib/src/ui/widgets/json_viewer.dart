@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class JsonViewer extends StatefulWidget {
   final dynamic data;
@@ -36,7 +38,6 @@ class JsonViewer extends StatefulWidget {
     }
   }
 
-  /// Count search occurrences in a data subtree (recursive).
   static int countMatches(dynamic data, String query) {
     if (query.isEmpty) return 0;
     final q = query.toLowerCase();
@@ -93,6 +94,21 @@ class _JsonViewerState extends State<JsonViewer> {
   static const _highlightColor = Color(0x80FFF59D);
   static const _activeHighlightColor = Colors.orange;
 
+  void _copyToClipboard() {
+    final formatted = JsonViewer.formatData(widget.data);
+    Clipboard.setData(ClipboardData(text: formatted)).then((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Copied to clipboard'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.data == null) {
@@ -104,24 +120,45 @@ class _JsonViewerState extends State<JsonViewer> {
         ),
       );
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DefaultTextStyle(
-        style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          height: 1.5,
+    return Stack(
+      children: [
+        SelectionArea(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                height: 1.5,
+              ),
+              child: _JsonNode(
+                nodeKey: null,
+                value: widget.data,
+                isLast: true,
+                root: true,
+                searchQuery: widget.searchQuery,
+                matchOffset: widget.matchOffset,
+                activeGlobalIndex: widget.activeGlobalIndex,
+              ),
+            ),
+          ),
         ),
-        child: _JsonNode(
-          nodeKey: null,
-          value: widget.data,
-          isLast: true,
-          root: true,
-          searchQuery: widget.searchQuery,
-          matchOffset: widget.matchOffset,
-          activeGlobalIndex: widget.activeGlobalIndex,
+        Positioned(
+          top: 0,
+          right: 0,
+          child: Material(
+            color: Colors.transparent,
+            child: IconButton(
+              icon: const Icon(Icons.copy, size: 16, color: Colors.grey),
+              tooltip: 'Copy JSON',
+              onPressed: _copyToClipboard,
+              splashRadius: 16,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(4),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -333,7 +370,8 @@ class _JsonNodeState extends State<_JsonNode> {
           s.style?.backgroundColor == _JsonViewerState._activeHighlightColor);
       valueSpan = TextSpan(children: spans);
     } else {
-      valueSpan = TextSpan(text: valueText, style: TextStyle(color: valueColor));
+      valueSpan =
+          TextSpan(text: valueText, style: TextStyle(color: valueColor));
     }
 
     final key = hasActiveMatch ? GlobalKey() : null;
@@ -351,8 +389,8 @@ class _JsonNodeState extends State<_JsonNode> {
     return Padding(
       key: key,
       padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
-      child: RichText(
-        text: TextSpan(
+      child: Text.rich(
+        TextSpan(
           style: DefaultTextStyle.of(context).style,
           children: [keySpan, valueSpan, commaSpan],
         ),
@@ -363,15 +401,15 @@ class _JsonNodeState extends State<_JsonNode> {
   Widget _buildSimpleLine(TextSpan keySpan, String text, TextSpan commaSpan) {
     return Padding(
       padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
-      child: RichText(
-        text: TextSpan(
+      child: Text.rich(
+        TextSpan(
           style: DefaultTextStyle.of(context).style,
           children: [
             keySpan,
             TextSpan(
                 text: text,
-                style: const TextStyle(
-                    color: _JsonViewerState._punctuationColor)),
+                style:
+                    const TextStyle(color: _JsonViewerState._punctuationColor)),
             commaSpan,
           ],
         ),
@@ -432,8 +470,8 @@ class _JsonNodeState extends State<_JsonNode> {
                   child: const Icon(Icons.arrow_drop_down,
                       size: 16, color: Colors.grey),
                 ),
-                RichText(
-                  text: TextSpan(
+                Text.rich(
+                  TextSpan(
                     style: DefaultTextStyle.of(context).style,
                     children: [
                       keyHtml,
@@ -479,8 +517,8 @@ class _JsonNodeState extends State<_JsonNode> {
               ),
             ),
           if (_isExpanded)
-            RichText(
-              text: TextSpan(
+            Text.rich(
+              TextSpan(
                 style: DefaultTextStyle.of(context).style,
                 children: [
                   TextSpan(

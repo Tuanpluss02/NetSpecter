@@ -1,54 +1,70 @@
-import '../model/request_record.dart';
+import 'package:netspecter/netspecter.dart';
 
 class HarExporter {
   const HarExporter._();
 
   static Map<String, Object?> fromRecords(List<RequestRecord> records) {
-    return <String, Object?>{
-      'log': <String, Object?>{
+    return {
+      'log': {
         'version': '1.2',
-        'creator': <String, Object?>{
-          'name': 'NetSpecter',
-          'version': '0.0.1',
-        },
-        'entries': records
-            .map(
-              (r) => <String, Object?>{
-                'startedDateTime': r.timestamp.toIso8601String(),
-                'time': r.durationMs,
-                'request': <String, Object?>{
-                  'method': r.method,
-                  'url': r.url,
-                  'headers': r.requestHeaders.entries
-                      .map((e) => <String, String>{
-                            'name': e.key,
-                            'value': e.value,
-                          })
-                      .toList(),
-                  'postData': r.requestBodyPreview == null
-                      ? null
-                      : <String, Object?>{
-                          'mimeType': r.requestContentType ?? '',
-                          'text': r.requestBodyPreview,
-                        },
-                },
-                'response': <String, Object?>{
-                  'status': r.statusCode,
-                  'headers': r.responseHeaders.entries
-                      .map((e) => <String, String>{
-                            'name': e.key,
-                            'value': e.value,
-                          })
-                      .toList(),
-                  'content': <String, Object?>{
-                    'mimeType': r.responseContentType ?? '',
-                    'text': r.responseBodyPreview ?? '',
-                  },
-                },
-              },
-            )
-            .toList(),
+        'creator': {'name': 'NetSpecter', 'version': '0.0.1'},
+        'entries': records.map(_entryFromRecord).toList(),
       },
     };
+  }
+
+  static Map<String, Object?> _entryFromRecord(RequestRecord r) {
+    return {
+      'startedDateTime': r.timestamp.toIso8601String(),
+      'time': r.durationMs,
+      'timings': {'send': 0, 'wait': r.durationMs, 'receive': 0},
+      'request': {
+        'method': r.method,
+        'url': r.url,
+        'httpVersion': 'HTTP/1.1',
+        'cookies': [],
+        'headers': _mapHeaders(r.requestHeaders),
+        'queryString': [],
+        'headersSize': -1,
+        'bodySize': r.requestSizeBytes,
+        'postData': _buildPostData(r),
+      },
+      'response': {
+        'status': r.statusCode,
+        'statusText': '',
+        'httpVersion': 'HTTP/1.1',
+        'cookies': [],
+        'headers': _mapHeaders(r.responseHeaders),
+        'content': {
+          'size': r.responseSizeBytes,
+          'mimeType': r.responseContentType ?? 'application/octet-stream',
+          'text': _safeBody(r.responseBodyPreview),
+        },
+        'redirectURL': '',
+        'headersSize': -1,
+        'bodySize': r.responseSizeBytes,
+      },
+    };
+  }
+
+  static List<Map<String, String>> _mapHeaders(Map<String, String> headers) {
+    return headers.entries
+        .map((e) => {'name': e.key, 'value': e.value})
+        .toList();
+  }
+
+  static Map<String, Object?>? _buildPostData(RequestRecord r) {
+    final body = r.requestBodyPreview;
+    if (body == null || body.isEmpty || body.startsWith('[')) return null;
+    return {
+      'mimeType': r.requestContentType ?? 'application/octet-stream',
+      'text': body,
+    };
+  }
+
+  // Trả về string rỗng thay vì placeholder binary
+  static String _safeBody(String? body) {
+    if (body == null || body.startsWith('[')) return '';
+    return body;
   }
 }

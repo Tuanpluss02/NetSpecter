@@ -201,10 +201,11 @@ class _RequestDetailPageState extends State<RequestDetailPage>
             });
           }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Detail Search Bar
+          return SelectionArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Detail Search Bar
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16.0,
@@ -364,8 +365,9 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                     );
                   },
                 ),
-              ),
-            ],
+                ),
+              ],
+            ),
           );
         },
       ),

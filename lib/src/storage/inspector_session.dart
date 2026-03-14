@@ -377,6 +377,8 @@ class InspectorSession extends ChangeNotifier {
       url: entry.url,
       statusCode: entry.statusCode,
       durationMs: entry.durationMs,
+      requestSizeBytes: entry.requestSizeBytes,
+      responseSizeBytes: entry.responseSizeBytes,
       timestamp: entry.timestamp,
       requestHeaders: entry.requestHeaders,
       responseHeaders: entry.responseHeaders,
