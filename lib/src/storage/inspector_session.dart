@@ -45,6 +45,7 @@ class InspectorSession extends ChangeNotifier {
   bool _initialized = false;
   bool _enabled = true;
   bool _clearing = false;
+  bool _urlDecodeEnabled = false;
 
   /// Captures sent to the isolate but not yet returned as [IndexEntry].
   int _inFlight = 0;
@@ -55,11 +56,30 @@ class InspectorSession extends ChangeNotifier {
 
   HttpCallFilter _filter = const HttpCallFilter();
 
+  // Master search state.
+  String? _masterQuery;
+  List<IndexEntry>? _masterResults;
+  bool _isScanningBodies = false;
+  bool _isScanningFiles = false;
+  int _searchGeneration = 0;
+
   HttpCallFilter get filter => _filter;
-  List<IndexEntry> get entries => _memoryIndex.filtered(_filter);
+  List<IndexEntry> get entries {
+    if (_masterQuery != null) {
+      return _masterResults ?? const [];
+    }
+    return _memoryIndex.filtered(_filter);
+  }
+
   int get totalEntries => _memoryIndex.length;
   int get droppedCount => _droppedCount;
   bool get isEnabled => _enabled;
+  bool get urlDecodeEnabled => _urlDecodeEnabled;
+
+  String? get masterQuery => _masterQuery;
+  bool get isMasterSearchActive => _masterQuery != null;
+  bool get isScanningBodies => _isScanningBodies;
+  bool get isScanningFiles => _isScanningFiles;
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -85,6 +105,7 @@ class InspectorSession extends ChangeNotifier {
     // Flush captures buffered before the isolate was ready.
     // Runs synchronously (no awaits) so no new record() call can interleave.
     _droppedCount += _preInitQueue.droppedCount;
+    _urlDecodeEnabled = settings.urlDecodeEnabled;
     RawCapture? pending;
     while ((pending = _preInitQueue.removeFirstOrNull()) != null) {
       _sendCapture(pending!);
@@ -110,6 +131,14 @@ class InspectorSession extends ChangeNotifier {
   /// silently dropped. Useful for hiding sensitive screens (e.g. payment flows).
   void disable() {
     _enabled = false;
+  }
+
+  /// Toggles URL decoding for the UI views.
+  void setUrlDecodeEnabled(bool value) {
+    if (_urlDecodeEnabled != value) {
+      _urlDecodeEnabled = value;
+      notifyListeners();
+    }
   }
 
   /// Fire-and-forget: enqueue a [RawCapture] for background processing.
@@ -147,6 +176,158 @@ class InspectorSession extends ChangeNotifier {
   void clearFilter() {
     _filter = const HttpCallFilter();
     notifyListeners();
+  }
+
+  /// Cancels any in-progress master search and restores normal filtered mode.
+  void cancelMasterSearch() {
+    _searchGeneration++;
+    _masterQuery = null;
+    _masterResults = null;
+    _isScanningBodies = false;
+    _isScanningFiles = false;
+    notifyListeners();
+  }
+
+  /// Starts a progressive master search over all captures.
+  ///
+  /// Phase 1 (sync): URL, method, headers, error messages.
+  /// Phase 2 (chunked async): in-memory bodies.
+  /// Phase 3 (async I/O): file-backed bodies.
+  Future<void> startMasterSearch(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      cancelMasterSearch();
+      return;
+    }
+
+    final gen = ++_searchGeneration;
+    final q = trimmed.toLowerCase();
+
+    _masterQuery = trimmed;
+    _masterResults = [];
+    _isScanningBodies = false;
+    _isScanningFiles = false;
+    notifyListeners();
+
+    final allEntries = _memoryIndex.entries;
+    final matchedIds = <String>{};
+
+    bool matchesStructured(IndexEntry e) {
+      if (e.url.toLowerCase().contains(q)) return true;
+      if (e.method.toLowerCase().contains(q)) return true;
+      if (e.errorMessage?.toLowerCase().contains(q) ?? false) return true;
+
+      for (final h in e.requestHeaders.entries) {
+        if (h.key.toLowerCase().contains(q)) return true;
+        if (h.value.toLowerCase().contains(q)) return true;
+      }
+      for (final h in e.responseHeaders.entries) {
+        if (h.key.toLowerCase().contains(q)) return true;
+        if (h.value.toLowerCase().contains(q)) return true;
+      }
+      return false;
+    }
+
+    bool matchesInlineBody(IndexEntry e) {
+      final req =
+          _decodeBody(e.inlineRequestBody, e.requestContentType)?.toLowerCase();
+      if (req != null && req.contains(q)) return true;
+      final res = _decodeBody(e.inlineResponseBody, e.responseContentType)
+          ?.toLowerCase();
+      if (res != null && res.contains(q)) return true;
+      return false;
+    }
+
+    // Phase 1: structured fields only (sync).
+    for (final e in allEntries) {
+      if (matchesStructured(e)) {
+        matchedIds.add(e.id);
+        _masterResults!.add(e);
+      }
+    }
+    if (gen != _searchGeneration) return;
+    notifyListeners();
+
+    // Phase 2: in-memory bodies, processed in small async batches (append-only for O(1) updates).
+    _isScanningBodies = true;
+    notifyListeners();
+    for (var i = 0; i < allEntries.length; i++) {
+      if (gen != _searchGeneration) return;
+      final e = allEntries[i];
+      if (e.bodyLocation == BodyLocation.memory &&
+          !matchedIds.contains(e.id) &&
+          matchesInlineBody(e)) {
+        matchedIds.add(e.id);
+        _masterResults!.add(e);
+        notifyListeners();
+      }
+      if (i % 20 == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+    if (gen != _searchGeneration) return;
+    _isScanningBodies = false;
+    notifyListeners();
+
+    // Phase 3: file-backed bodies with parallel batch reading for better performance.
+    final filePath = _tempFilePath;
+    if (filePath != null) {
+      _isScanningFiles = true;
+      notifyListeners();
+
+      // Collect all file entries to read.
+      final fileEntries = <(IndexEntry, int, int)>[];
+      for (final e in allEntries) {
+        if (e.bodyLocation == BodyLocation.file &&
+            !matchedIds.contains(e.id) &&
+            e.fileOffset != null &&
+            e.fileLength != null) {
+          fileEntries.add((e, e.fileOffset!, e.fileLength!));
+        }
+      }
+
+      // Process in parallel batches of 4 files.
+      const batchSize = 4;
+      for (var batchStart = 0;
+          batchStart < fileEntries.length;
+          batchStart += batchSize) {
+        if (gen != _searchGeneration) return;
+
+        final batchEnd = (batchStart + batchSize).clamp(0, fileEntries.length);
+        final batch = fileEntries.sublist(batchStart, batchEnd);
+
+        final futures = batch.map((entry) async {
+          try {
+            final (e, offset, length) = entry;
+            final raw = await BodyStore.readBytes(filePath, offset, length);
+            final decoded = raw.length > _kComputeThreshold
+                ? await compute(_unpackBodies, raw)
+                : _unpackBodies(raw);
+            final combined =
+                '${decoded.$1 ?? ''}\n${decoded.$2 ?? ''}'.toLowerCase();
+            if (combined.contains(q)) {
+              return (true, e);
+            }
+          } catch (_) {
+            // Ignore individual file read errors for search.
+          }
+          return (false, null);
+        });
+
+        final results = await Future.wait(futures);
+        for (final (matched, e) in results) {
+          if (matched && e != null && !matchedIds.contains(e.id)) {
+            matchedIds.add(e.id);
+            _masterResults!.add(e);
+            notifyListeners();
+          }
+        }
+      }
+
+      if (gen != _searchGeneration) return;
+      _isScanningFiles = false;
+      notifyListeners();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -227,6 +408,11 @@ class InspectorSession extends ChangeNotifier {
       _droppedCount = 0;
       _memoryIndex.clear();
       _filter = const HttpCallFilter();
+      _searchGeneration++;
+      _masterQuery = null;
+      _masterResults = null;
+      _isScanningBodies = false;
+      _isScanningFiles = false;
       notifyListeners();
     } finally {
       _clearing = false;
@@ -267,13 +453,12 @@ class InspectorSession extends ChangeNotifier {
 
   static bool _isBinaryContentType(String? contentType) {
     if (contentType == null) return false;
-    final lower = contentType.toLowerCase();
-    return lower.contains('image/') ||
-        lower.contains('audio/') ||
-        lower.contains('video/') ||
-        lower.contains('application/pdf') ||
-        lower.contains('application/octet-stream') ||
-        lower.contains('application/zip');
+    return contentType.startsWith('image/') ||
+        contentType.startsWith('audio/') ||
+        contentType.startsWith('video/') ||
+        contentType.contains('application/pdf') ||
+        contentType.contains('application/octet-stream') ||
+        contentType.contains('application/zip');
   }
 
   static (String?, String?, bool) _unpackBodies(Uint8List raw) {

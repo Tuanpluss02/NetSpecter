@@ -4,11 +4,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../storage/inspector_session.dart';
+import '../screens/netspecter_screen.dart';
 import '../trigger/inspector_trigger.dart';
 import '../trigger/netspecter_config.dart';
 import '../trigger/shake_detector.dart';
 import 'draggable_fab.dart';
-import '../screens/netspecter_screen.dart';
 
 class NetSpecterOverlay extends StatefulWidget {
   NetSpecterOverlay({
@@ -76,8 +76,7 @@ class _NetSpecterOverlayState extends State<NetSpecterOverlay> {
   @override
   void didUpdateWidget(NetSpecterOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.navigatorKey != widget.navigatorKey &&
-        widget.navigatorKey != null) {
+    if (oldWidget.navigatorKey != widget.navigatorKey && widget.navigatorKey != null) {
       _registeredNavigatorKey = widget.navigatorKey;
     }
     if (oldWidget.customTrigger != widget.customTrigger) {
@@ -144,8 +143,8 @@ class _NetSpecterOverlayState extends State<NetSpecterOverlay> {
     }
 
     if (triggers.contains(InspectorTrigger.floatingButton)) {
-      final fabChild = widget.config.fabChild ??
-          const Icon(Icons.bug_report, size: 20, color: Colors.white);
+      final fabChild =
+          widget.config.fabChild ?? const Icon(Icons.bug_report, size: 20, color: Colors.white);
 
       content = Stack(
         children: <Widget>[
@@ -210,9 +209,7 @@ void openInspectorIfNotOpen({
 
   final navigator = nav ??
       _registeredNavigatorKey?.currentState ??
-      (context != null
-          ? Navigator.maybeOf(context, rootNavigator: true)
-          : null);
+      (context != null ? Navigator.maybeOf(context, rootNavigator: true) : null);
   if (navigator == null) return;
 
   _inspectorIsOpen = true;

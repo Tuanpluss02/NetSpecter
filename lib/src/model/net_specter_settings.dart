@@ -5,6 +5,7 @@ class NetSpecterSettings {
     this.maxBodyBytes = 2 * 1024 * 1024,
     this.maxQueuedEvents = 500,
     this.maxEntries = 5000,
+    this.urlDecodeEnabled = true,
   });
 
   /// Body size (bytes) above which data is offloaded to the temp file.
@@ -24,4 +25,7 @@ class NetSpecterSettings {
   /// Maximum number of [IndexEntry]s kept in the [MemoryIndex].
   /// When exceeded, the oldest entry is removed.
   final int maxEntries;
+
+  /// Whether to decode URL encodings in the UI.
+  final bool urlDecodeEnabled;
 }

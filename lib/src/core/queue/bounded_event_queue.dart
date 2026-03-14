@@ -1,7 +1,8 @@
 import 'dart:collection';
 
 class BoundedEventQueue<T> {
-  BoundedEventQueue({required this.maxSize}) : assert(maxSize > 0, 'maxSize must be > 0');
+  BoundedEventQueue({required this.maxSize})
+      : assert(maxSize > 0, 'maxSize must be > 0');
 
   final int maxSize;
   final Queue<T> _items = Queue<T>();

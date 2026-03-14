@@ -35,7 +35,6 @@ class NetSpecter extends ChangeNotifier {
     );
   }
 
-
   final InspectorSession _session;
 
   // ---------------------------------------------------------------------------
