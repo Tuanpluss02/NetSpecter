@@ -9,6 +9,7 @@ import '../model/body_location.dart';
 import '../model/http_call_filter.dart';
 import '../model/index_entry.dart';
 import '../model/net_specter_settings.dart';
+import '../model/network_simulation.dart';
 import '../model/raw_capture.dart';
 import '../model/request_record.dart';
 import 'body_store.dart';
@@ -46,6 +47,9 @@ class InspectorSession extends ChangeNotifier {
   bool _enabled = true;
   bool _clearing = false;
   bool _urlDecodeEnabled = false;
+  NetworkSimulationProfile _networkSimulation = NetworkSimulationProfile.none;
+  final Map<String, Timer> _pendingTimers = {};
+  static const Duration _pendingTimeout = Duration(seconds: 45);
 
   /// Captures sent to the isolate but not yet returned as [IndexEntry].
   int _inFlight = 0;
@@ -75,6 +79,7 @@ class InspectorSession extends ChangeNotifier {
   int get droppedCount => _droppedCount;
   bool get isEnabled => _enabled;
   bool get urlDecodeEnabled => _urlDecodeEnabled;
+  NetworkSimulationProfile get networkSimulation => _networkSimulation;
 
   String? get masterQuery => _masterQuery;
   bool get isMasterSearchActive => _masterQuery != null;
@@ -114,6 +119,7 @@ class InspectorSession extends ChangeNotifier {
 
   void _onEntryReady(IndexEntry entry) {
     _inFlight--;
+    _cancelPendingTimeout(entry.id);
     _memoryIndex.add(entry);
     notifyListeners();
   }
@@ -141,6 +147,67 @@ class InspectorSession extends ChangeNotifier {
     }
   }
 
+  void setNetworkSimulation(NetworkSimulationProfile profile) {
+    _networkSimulation = profile;
+    notifyListeners();
+  }
+
+  void clearNetworkSimulation() {
+    if (_networkSimulation.isNoThrottling) return;
+    _networkSimulation = NetworkSimulationProfile.none;
+    notifyListeners();
+  }
+
+  Future<void> applyNetworkSimulationBeforeRequest({
+    required int uploadBytes,
+  }) async {
+    final profile = _networkSimulation;
+    if (profile.offline) {
+      throw const SimulatedNetworkException(
+          'Simulated offline mode is enabled.');
+    }
+
+    if (profile.latencyMs > 0) {
+      await Future<void>.delayed(Duration(milliseconds: profile.latencyMs));
+    }
+
+    final uploadDelay = _throughputDelay(
+      bytes: uploadBytes,
+      kbps: profile.uploadKbps,
+    );
+    if (uploadDelay > Duration.zero) {
+      await Future<void>.delayed(uploadDelay);
+    }
+  }
+
+  Future<void> applyNetworkSimulationAfterResponse({
+    required int downloadBytes,
+  }) async {
+    final profile = _networkSimulation;
+    final downloadDelay = _throughputDelay(
+      bytes: downloadBytes,
+      kbps: profile.downloadKbps,
+    );
+    if (downloadDelay > Duration.zero) {
+      await Future<void>.delayed(downloadDelay);
+    }
+  }
+
+  Duration throughputDelayForChunk(int chunkBytes) {
+    final profile = _networkSimulation;
+    return _throughputDelay(bytes: chunkBytes, kbps: profile.downloadKbps);
+  }
+
+  Duration _throughputDelay({
+    required int bytes,
+    required int kbps,
+  }) {
+    if (bytes <= 0 || kbps <= 0) return Duration.zero;
+    final ms = (bytes * 8 * 1000 / (kbps * 1000)).ceil();
+    if (ms <= 0) return Duration.zero;
+    return Duration(milliseconds: ms);
+  }
+
   /// Fire-and-forget: enqueue a [RawCapture] for background processing.
   /// Returns immediately — never blocks the interceptor.
   /// No-op when [isEnabled] is false or the queue is full.
@@ -162,6 +229,102 @@ class InspectorSession extends ChangeNotifier {
     }
     _inFlight++;
     _writerIsolate.send(capture);
+  }
+
+  /// Inserts an immediate pending request entry so UI can render it before
+  /// the response arrives.
+  ///
+  /// The final capture should use the same [id] so it replaces this pending
+  /// row via [MemoryIndex.add] upsert.
+  void recordPending({
+    required String id,
+    required String method,
+    required String url,
+    required DateTime timestamp,
+    Map<String, String> requestHeaders = const {},
+    Uint8List? requestBodyBytes,
+    String? requestContentType,
+  }) {
+    if (!_enabled) return;
+
+    final inlineRequestBody = _truncatePreview(requestBodyBytes,
+        settings.maxBodyBytes, settings.previewTruncationBytes);
+    final isTruncated = requestBodyBytes != null &&
+        requestBodyBytes.length > settings.maxBodyBytes;
+
+    _memoryIndex.add(IndexEntry(
+      id: id,
+      method: method,
+      url: url,
+      statusCode: 0,
+      durationMs: 0,
+      requestSizeBytes: requestBodyBytes?.length ?? 0,
+      responseSizeBytes: 0,
+      timestamp: timestamp,
+      hasError: false,
+      bodyLocation: BodyLocation.memory,
+      inlineRequestBody: inlineRequestBody,
+      inlineResponseBody: null,
+      requestHeaders: requestHeaders,
+      responseHeaders: const {},
+      requestContentType: requestContentType,
+      responseContentType: null,
+      errorType: null,
+      errorMessage: null,
+      isBodyTruncated: isTruncated,
+      fileOffset: null,
+      fileLength: null,
+    ));
+    _schedulePendingTimeout(id);
+    notifyListeners();
+  }
+
+  void _schedulePendingTimeout(String id) {
+    _cancelPendingTimeout(id);
+    _pendingTimers[id] = Timer(_pendingTimeout, () {
+      _pendingTimers.remove(id);
+
+      IndexEntry? current;
+      for (final entry in _memoryIndex.entries) {
+        if (entry.id == id) {
+          current = entry;
+          break;
+        }
+      }
+
+      if (current == null) return;
+      if (current.statusCode != 0 || current.hasError) return;
+
+      _memoryIndex.add(IndexEntry(
+        id: current.id,
+        method: current.method,
+        url: current.url,
+        statusCode: 0,
+        durationMs: current.durationMs,
+        requestSizeBytes: current.requestSizeBytes,
+        responseSizeBytes: current.responseSizeBytes,
+        timestamp: current.timestamp,
+        hasError: true,
+        bodyLocation: current.bodyLocation,
+        inlineRequestBody: current.inlineRequestBody,
+        inlineResponseBody: current.inlineResponseBody,
+        requestHeaders: current.requestHeaders,
+        responseHeaders: current.responseHeaders,
+        requestContentType: current.requestContentType,
+        responseContentType: current.responseContentType,
+        errorType: 'TimeoutException',
+        errorMessage:
+            'Request timed out while waiting for response or terminal error.',
+        isBodyTruncated: current.isBodyTruncated,
+        fileOffset: current.fileOffset,
+        fileLength: current.fileLength,
+      ));
+      notifyListeners();
+    });
+  }
+
+  void _cancelPendingTimeout(String id) {
+    _pendingTimers.remove(id)?.cancel();
   }
 
   // ---------------------------------------------------------------------------
@@ -342,13 +505,15 @@ class InspectorSession extends ChangeNotifier {
   Future<RequestRecord> loadDetail(IndexEntry entry) async {
     String? reqPreview;
     String? resPreview;
+    Uint8List? reqBytes;
+    Uint8List? resBytes;
     bool isTruncated = entry.isBodyTruncated;
 
     if (entry.bodyLocation == BodyLocation.memory) {
-      reqPreview =
-          _decodeBody(entry.inlineRequestBody, entry.requestContentType);
-      resPreview =
-          _decodeBody(entry.inlineResponseBody, entry.responseContentType);
+      reqBytes = entry.inlineRequestBody;
+      resBytes = entry.inlineResponseBody;
+      reqPreview = _decodeBody(reqBytes, entry.requestContentType);
+      resPreview = _decodeBody(resBytes, entry.responseContentType);
     } else {
       final offset = entry.fileOffset;
       final length = entry.fileLength;
@@ -359,10 +524,12 @@ class InspectorSession extends ChangeNotifier {
           // Static read — creates a read-only handle, never modifies the file.
           final raw = await BodyStore.readBytes(filePath, offset, length);
           final decoded = raw.length > _kComputeThreshold
-              ? await compute(_unpackBodies, raw)
-              : _unpackBodies(raw);
-          reqPreview = decoded.$1;
-          resPreview = decoded.$2;
+              ? await compute(_unpackBodiesRaw, raw)
+              : _unpackBodiesRaw(raw);
+          reqBytes = decoded.$1;
+          resBytes = decoded.$2;
+          reqPreview = _decodeBody(reqBytes, entry.requestContentType);
+          resPreview = _decodeBody(resBytes, entry.responseContentType);
           isTruncated = isTruncated || decoded.$3;
         } catch (_) {
           reqPreview = '[body unavailable]';
@@ -386,6 +553,8 @@ class InspectorSession extends ChangeNotifier {
       responseContentType: entry.responseContentType,
       requestBodyPreview: reqPreview,
       responseBodyPreview: resPreview,
+      requestBodyBytesPreview: reqBytes,
+      responseBodyBytesPreview: resBytes,
       isBodyTruncated: isTruncated,
       errorType: entry.errorType,
       errorMessage: entry.errorMessage,
@@ -415,6 +584,10 @@ class InspectorSession extends ChangeNotifier {
       _masterResults = null;
       _isScanningBodies = false;
       _isScanningFiles = false;
+      for (final timer in _pendingTimers.values) {
+        timer.cancel();
+      }
+      _pendingTimers.clear();
       notifyListeners();
     } finally {
       _clearing = false;
@@ -427,6 +600,10 @@ class InspectorSession extends ChangeNotifier {
     await _writerIsolate.dispose();
     await _memoryIndex.dispose();
     _preInitQueue.clear();
+    for (final timer in _pendingTimers.values) {
+      timer.cancel();
+    }
+    _pendingTimers.clear();
     _initialized = false;
     _inFlight = 0;
     _initFuture = null;
@@ -463,6 +640,17 @@ class InspectorSession extends ChangeNotifier {
         contentType.contains('application/zip');
   }
 
+  static Uint8List? _truncatePreview(
+    Uint8List? bytes,
+    int maxBody,
+    int previewLen,
+  ) {
+    if (bytes == null || bytes.isEmpty) return null;
+    if (bytes.length <= maxBody) return bytes;
+    final end = previewLen < bytes.length ? previewLen : bytes.length;
+    return bytes.sublist(0, end);
+  }
+
   static (String?, String?, bool) _unpackBodies(Uint8List raw) {
     try {
       final json = jsonDecode(utf8.decode(raw)) as Map<String, dynamic>;
@@ -472,6 +660,21 @@ class InspectorSession extends ChangeNotifier {
 
       final req = reqBase64 != null ? _tryUtf8(base64.decode(reqBase64)) : null;
       final res = resBase64 != null ? _tryUtf8(base64.decode(resBase64)) : null;
+      return (req, res, truncated);
+    } catch (_) {
+      return (null, null, false);
+    }
+  }
+
+  static (Uint8List?, Uint8List?, bool) _unpackBodiesRaw(Uint8List raw) {
+    try {
+      final json = jsonDecode(utf8.decode(raw)) as Map<String, dynamic>;
+      final reqBase64 = json['req'] as String?;
+      final resBase64 = json['res'] as String?;
+      final truncated = json['truncated'] as bool? ?? false;
+
+      final req = reqBase64 != null ? base64.decode(reqBase64) : null;
+      final res = resBase64 != null ? base64.decode(resBase64) : null;
       return (req, res, truncated);
     } catch (_) {
       return (null, null, false);

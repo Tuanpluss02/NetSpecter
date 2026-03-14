@@ -42,9 +42,22 @@ class NetSpecterHttpClient extends http.BaseClient {
       request.headers.entries.map((e) => MapEntry(e.key, e.value)),
     );
 
+    session.recordPending(
+      id: id,
+      method: request.method,
+      url: request.url.toString(),
+      timestamp: startedAt,
+      requestHeaders: reqHeaders,
+      requestBodyBytes: bodyBytes,
+      requestContentType: request.headers['content-type'],
+    );
+
     http.StreamedResponse response;
 
     try {
+      await session.applyNetworkSimulationBeforeRequest(
+        uploadBytes: bodyBytes?.length ?? 0,
+      );
       response = await _inner.send(request);
     } catch (e) {
       final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
@@ -148,6 +161,27 @@ class NetSpecterHttpClient extends http.BaseClient {
 
     sub = source.listen(
       (chunk) {
+        final delay = session.throughputDelayForChunk(chunk.length);
+        if (delay > Duration.zero) {
+          sub.pause();
+          Future<void>.delayed(delay, () {
+            controller.add(chunk);
+            if (!captureStopped) {
+              final remaining = maxCapture - captureBuffer.length;
+              if (chunk.length <= remaining) {
+                captureBuffer.add(chunk);
+              } else {
+                if (remaining > 0) {
+                  captureBuffer.add(chunk.sublist(0, remaining));
+                }
+                captureStopped = true;
+              }
+            }
+            sub.resume();
+          });
+          return;
+        }
+
         controller.add(chunk);
         if (!captureStopped) {
           final remaining = maxCapture - captureBuffer.length;

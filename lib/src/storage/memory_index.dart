@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
-import '../model/index_entry.dart';
 import '../model/http_call_filter.dart';
+import '../model/index_entry.dart';
 
 /// In-memory list of [IndexEntry]s with a broadcast stream for UI updates.
 ///
@@ -25,6 +25,13 @@ class MemoryIndex {
   int get length => _entries.length;
 
   void add(IndexEntry entry) {
+    final existingIndex = _entries.indexWhere((e) => e.id == entry.id);
+    if (existingIndex != -1) {
+      _entries[existingIndex] = entry;
+      _controller.add(UnmodifiableListView(_entries));
+      return;
+    }
+
     if (_entries.length >= maxEntries) {
       _entries.removeLast();
     }

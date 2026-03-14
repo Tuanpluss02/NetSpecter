@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/detail/request_detail_page.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
+import 'package:netspecter/src/ui/utils/error_summary.dart';
 
 import '../../storage/inspector_session.dart';
 
@@ -86,6 +87,13 @@ class NetworkTab extends StatelessWidget {
                   ),
                   itemBuilder: (context, index) {
                     final req = entries[index];
+                    final isPending = req.statusCode == 0 && !req.hasError;
+                    final isErrorWithoutStatus =
+                        req.statusCode == 0 && req.hasError;
+                    final shortError = summarizeRequestError(
+                      errorType: req.errorType,
+                      errorMessage: req.errorMessage,
+                    );
 
                     // Format time
                     final time =
@@ -101,8 +109,14 @@ class NetworkTab extends StatelessWidget {
                       method: req.method,
                       url: displayUrl,
                       time: time,
-                      duration: '${req.durationMs}ms',
+                      duration: isPending
+                          ? 'loading…'
+                          : isErrorWithoutStatus
+                              ? shortError
+                              : '${req.durationMs}ms',
                       status: req.statusCode,
+                      hasError: req.hasError,
+                      isPending: isPending,
                       onTap: () {
                         // Open Detail Page
                         Navigator.of(context).push(MaterialPageRoute(
@@ -130,6 +144,8 @@ class _RequestLogItem extends StatelessWidget {
   final String time;
   final String duration;
   final int status;
+  final bool hasError;
+  final bool isPending;
   final VoidCallback onTap;
 
   const _RequestLogItem({
@@ -138,13 +154,18 @@ class _RequestLogItem extends StatelessWidget {
     required this.time,
     required this.duration,
     required this.status,
+    required this.hasError,
+    required this.isPending,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final mStyle = NetSpecterTheme.getMethodStyle(method);
-    final sStyle = NetSpecterTheme.getStatusStyle(status);
+    final isErrorWithoutStatus = status == 0 && hasError;
+    final sStyle = isErrorWithoutStatus
+        ? const StatusStyle(bg: NetSpecterTheme.red500, text: Colors.white)
+        : NetSpecterTheme.getStatusStyle(status);
 
     return InkWell(
       onTap: onTap,
@@ -212,14 +233,23 @@ class _RequestLogItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12.0),
               ),
               alignment: Alignment.center,
-              child: Text(
-                status.toString(),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: sStyle.text,
-                ),
-              ),
+              child: isPending
+                  ? SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.8,
+                        valueColor: AlwaysStoppedAnimation<Color>(sStyle.text),
+                      ),
+                    )
+                  : Text(
+                      isErrorWithoutStatus ? 'ERR' : status.toString(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: sStyle.text,
+                      ),
+                    ),
             ),
           ],
         ),

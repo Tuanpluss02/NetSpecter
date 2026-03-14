@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:chopper/chopper.dart';
+
 import '../../core/request_id.dart';
+import '../../model/network_simulation.dart';
 import '../../model/raw_capture.dart';
 import '../../storage/inspector_session.dart';
 
@@ -18,26 +21,74 @@ class NetSpecterChopperInterceptor
   static const String _requestIdKey = 'netspecter_request_id';
 
   @override
-  FutureOr<Request> onRequest(Request request) {
+  FutureOr<Request> onRequest(Request request) async {
+    final startedAt = DateTime.now();
+    final requestId = RequestId.generate();
+
+    final reqBody = _extractBody((request as dynamic).body);
+    session.recordPending(
+      id: requestId,
+      method: request.method,
+      url: request.url.toString(),
+      timestamp: startedAt,
+      requestHeaders: request.headers,
+      requestBodyBytes: reqBody != null ? Uint8List.fromList(reqBody) : null,
+      requestContentType: request.headers['content-type'],
+    );
+
+    try {
+      await session.applyNetworkSimulationBeforeRequest(
+        uploadBytes: reqBody?.length ?? 0,
+      );
+    } on SimulatedNetworkException catch (e) {
+      final capture = RawCapture(
+        id: requestId,
+        method: request.method,
+        url: request.url.toString(),
+        requestHeaders: request.headers,
+        responseHeaders: const {},
+        statusCode: 0,
+        durationMs: DateTime.now().difference(startedAt).inMilliseconds,
+        timestamp: startedAt,
+        requestBodyBytes: RawCapture.wrapBytes(
+          reqBody != null ? Uint8List.fromList(reqBody) : null,
+        ),
+        requestContentType: request.headers['content-type'],
+        errorType: 'SimulatedNetworkException',
+        errorMessage: e.toString(),
+      );
+      session.record(capture);
+      rethrow;
+    }
+
     return request.copyWith(
       parameters: {
         ...request.parameters,
-        _startedAtKey: DateTime.now().toIso8601String(),
-        _requestIdKey: RequestId.generate(),
+        _startedAtKey: startedAt.toIso8601String(),
+        _requestIdKey: requestId,
       },
     );
   }
 
   @override
   FutureOr<Response> onResponse(Response response) {
+    final requestUri = response.base.request?.url;
     final requestId =
-        response.base.request?.url.queryParameters[_requestIdKey] ??
-            RequestId.generate();
-    final startedAtStr =
-        response.base.request?.url.queryParameters[_startedAtKey];
+        requestUri?.queryParameters[_requestIdKey] ?? RequestId.generate();
+    final startedAtStr = requestUri?.queryParameters[_startedAtKey];
     final startedAt = startedAtStr != null
         ? DateTime.tryParse(startedAtStr) ?? DateTime.now()
         : DateTime.now();
+
+    String captureUrl = requestUri?.toString() ?? '';
+    if (requestUri != null) {
+      final cleanParams = Map<String, String>.from(requestUri.queryParameters)
+        ..remove(_startedAtKey)
+        ..remove(_requestIdKey);
+      captureUrl = requestUri
+          .replace(queryParameters: cleanParams.isEmpty ? null : cleanParams)
+          .toString();
+    }
 
     final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
 
@@ -49,28 +100,33 @@ class NetSpecterChopperInterceptor
 
     final resBody = _extractBody(response.body);
 
-    final capture = RawCapture(
-      id: requestId,
-      method: response.base.request?.method ?? 'UNKNOWN',
-      url: response.base.request?.url.toString() ?? '',
-      requestHeaders: response.base.request?.headers ?? {},
-      responseHeaders: response.base.headers,
-      statusCode: response.statusCode,
-      durationMs: durationMs,
-      timestamp: startedAt,
-      requestBodyBytes: RawCapture.wrapBytes(
-          reqBody != null ? Uint8List.fromList(reqBody) : null),
-      responseBodyBytes: RawCapture.wrapBytes(
-          resBody != null ? Uint8List.fromList(resBody) : null),
-      requestContentType: response.base.request?.headers['content-type'],
-      responseContentType: response.base.headers['content-type'],
-      errorType: response.isSuccessful ? null : 'ChopperError',
-      errorMessage: response.isSuccessful ? null : response.error?.toString(),
-    );
+    return Future<Response>.sync(() async {
+      await session.applyNetworkSimulationAfterResponse(
+        downloadBytes: resBody?.length ?? 0,
+      );
 
-    session.record(capture);
+      final capture = RawCapture(
+        id: requestId,
+        method: response.base.request?.method ?? 'UNKNOWN',
+        url: captureUrl,
+        requestHeaders: response.base.request?.headers ?? {},
+        responseHeaders: response.base.headers,
+        statusCode: response.statusCode,
+        durationMs: durationMs,
+        timestamp: startedAt,
+        requestBodyBytes: RawCapture.wrapBytes(
+            reqBody != null ? Uint8List.fromList(reqBody) : null),
+        responseBodyBytes: RawCapture.wrapBytes(
+            resBody != null ? Uint8List.fromList(resBody) : null),
+        requestContentType: response.base.request?.headers['content-type'],
+        responseContentType: response.base.headers['content-type'],
+        errorType: response.isSuccessful ? null : 'ChopperError',
+        errorMessage: response.isSuccessful ? null : response.error?.toString(),
+      );
 
-    return response;
+      session.record(capture);
+      return response;
+    });
   }
 
   List<int>? _extractBody(dynamic body) {

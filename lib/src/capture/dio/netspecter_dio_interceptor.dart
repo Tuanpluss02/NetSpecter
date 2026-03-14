@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../core/request_id.dart';
+import '../../model/network_simulation.dart';
 import '../../model/raw_capture.dart';
 import '../../storage/inspector_session.dart';
 
@@ -17,17 +18,62 @@ class NetSpecterDioInterceptor extends Interceptor {
   static const String _requestIdKey = 'netspecter_request_id';
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.extra[_startedAtKey] = DateTime.now();
-    options.extra[_requestIdKey] = RequestId.generate();
+  Future<void> onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
+    final startedAt = DateTime.now();
+    final id = RequestId.generate();
+
+    options.extra[_startedAtKey] = startedAt;
+    options.extra[_requestIdKey] = id;
+
+    final reqBytes = _toBytes(options.data, options.contentType);
+    session.recordPending(
+      id: id,
+      method: options.method,
+      url: options.uri.toString(),
+      timestamp: startedAt,
+      requestHeaders: options.headers.map(
+        (k, v) => MapEntry(k, v.toString()),
+      ),
+      requestBodyBytes: reqBytes,
+      requestContentType: options.contentType,
+    );
+
+    try {
+      await session.applyNetworkSimulationBeforeRequest(
+        uploadBytes: reqBytes?.length ?? 0,
+      );
+    } on SimulatedNetworkException catch (e) {
+      _record(
+        options: options,
+        errorType: 'SimulatedNetworkException',
+        errorMessage: e.toString(),
+      );
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+          error: e,
+          message: e.toString(),
+        ),
+      );
+      return;
+    }
+
     handler.next(options);
   }
 
   @override
-  void onResponse(
+  Future<void> onResponse(
     Response<dynamic> response,
     ResponseInterceptorHandler handler,
-  ) {
+  ) async {
+    final resContentType = response.headers.value(Headers.contentTypeHeader);
+    final resBytes = _toBytes(response.data, resContentType);
+    await session.applyNetworkSimulationAfterResponse(
+      downloadBytes: resBytes?.length ?? 0,
+    );
+
     _record(
       options: response.requestOptions,
       response: response,

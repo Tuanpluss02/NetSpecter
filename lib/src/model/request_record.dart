@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Full detail model — loaded on demand when user opens a request.
 ///
 /// Built by [InspectorSession.loadDetail] from an [IndexEntry].
@@ -17,6 +19,8 @@ class RequestRecord {
     this.responseContentType,
     this.requestBodyPreview,
     this.responseBodyPreview,
+    this.requestBodyBytesPreview,
+    this.responseBodyBytesPreview,
     this.isBodyTruncated = false,
     this.errorType,
     this.errorMessage,
@@ -38,6 +42,8 @@ class RequestRecord {
   /// UTF-8 decoded body text, or '[binary: N bytes]' for non-text content.
   final String? requestBodyPreview;
   final String? responseBodyPreview;
+  final Uint8List? requestBodyBytesPreview;
+  final Uint8List? responseBodyBytesPreview;
 
   /// True if the body exceeded [NetSpecterSettings.maxBodyBytes] and was cut.
   final bool isBodyTruncated;

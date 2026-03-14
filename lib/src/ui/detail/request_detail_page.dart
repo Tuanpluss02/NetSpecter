@@ -27,6 +27,7 @@ class RequestDetailPage extends StatefulWidget {
 class _RequestDetailPageState extends State<RequestDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late IndexEntry _currentEntry;
   final TextEditingController _searchController = TextEditingController();
   late Future<RequestRecord> _recordFuture;
   final GlobalKey _fabKey = GlobalKey();
@@ -41,11 +42,14 @@ class _RequestDetailPageState extends State<RequestDetailPage>
 
   // Track which tabs have been visited (for lazy building)
   final Set<int> _visitedTabs = {0};
+  int _detailLoadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
-    _recordFuture = widget.session.loadDetail(widget.entry);
+    _currentEntry = widget.entry;
+    _recordFuture = widget.session.loadDetail(_currentEntry);
+    widget.session.addListener(_onSessionChanged);
     _recordFuture.then((record) {
       if (mounted) {
         setState(() {
@@ -64,9 +68,52 @@ class _RequestDetailPageState extends State<RequestDetailPage>
         });
       }
     });
-    final isWs = widget.entry.method == 'WS';
+    final isWs = _currentEntry.method == 'WS';
     _tabController = TabController(length: isWs ? 2 : 4, vsync: this);
     _tabController.addListener(_onTabChanged);
+  }
+
+  void _onSessionChanged() {
+    IndexEntry? latest;
+    for (final entry in widget.session.entries) {
+      if (entry.id == _currentEntry.id) {
+        latest = entry;
+        break;
+      }
+    }
+    if (latest == null) return;
+
+    if (_entryChanged(_currentEntry, latest)) {
+      _currentEntry = latest;
+      _refreshDetail(latest);
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  bool _entryChanged(IndexEntry prev, IndexEntry next) {
+    return prev.statusCode != next.statusCode ||
+        prev.durationMs != next.durationMs ||
+        prev.responseSizeBytes != next.responseSizeBytes ||
+        prev.hasError != next.hasError ||
+        prev.errorType != next.errorType ||
+        prev.errorMessage != next.errorMessage ||
+        prev.bodyLocation != next.bodyLocation ||
+        prev.fileOffset != next.fileOffset ||
+        prev.fileLength != next.fileLength;
+  }
+
+  Future<void> _refreshDetail(IndexEntry entry) async {
+    final generation = ++_detailLoadGeneration;
+    final future = widget.session.loadDetail(entry);
+    _recordFuture = future;
+    final record = await future;
+    if (!mounted || generation != _detailLoadGeneration) return;
+    setState(() {
+      _cachedRecord = record;
+      _recomputeMatches();
+    });
   }
 
   void _onTabChanged() {
@@ -93,6 +140,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
 
   @override
   void dispose() {
+    widget.session.removeListener(_onSessionChanged);
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
@@ -110,9 +158,13 @@ class _RequestDetailPageState extends State<RequestDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    final entry = widget.entry;
+    final entry = _currentEntry;
     final isWs = entry.method == 'WS';
-    final sStyle = NetSpecterTheme.getStatusStyle(entry.statusCode);
+    final isPending = entry.statusCode == 0 && !entry.hasError;
+    final isErrorWithoutStatus = entry.statusCode == 0 && entry.hasError;
+    final sStyle = isErrorWithoutStatus
+        ? const StatusStyle(bg: NetSpecterTheme.red500, text: Colors.white)
+        : NetSpecterTheme.getStatusStyle(entry.statusCode);
 
     String displayUrl = entry.url;
     if (widget.session.urlDecodeEnabled) {
@@ -152,14 +204,25 @@ class _RequestDetailPageState extends State<RequestDetailPage>
               borderRadius: BorderRadius.circular(4.0),
             ),
             alignment: Alignment.center,
-            child: Text(
-              '${entry.statusCode} ${entry.statusCode == 200 ? 'OK' : ''}',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: sStyle.text,
-              ),
-            ),
+            child: isPending
+                ? SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                      valueColor: AlwaysStoppedAnimation<Color>(sStyle.text),
+                    ),
+                  )
+                : Text(
+                    isErrorWithoutStatus
+                        ? 'ERR'
+                        : '${entry.statusCode} ${entry.statusCode == 200 ? 'OK' : ''}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: sStyle.text,
+                    ),
+                  ),
           ),
         ],
       ),

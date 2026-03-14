@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
 
+import '../../model/network_simulation.dart';
 import '../../storage/inspector_session.dart';
 
 class SettingsBottomSheet extends StatefulWidget {
@@ -23,6 +24,19 @@ class SettingsBottomSheet extends StatefulWidget {
 
 class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   bool _urlDecodeEnabled = true;
+  late NetworkSimulationProfile _networkSimulation;
+
+  static const String _customPresetName = 'Custom';
+
+  List<NetworkSimulationProfile> get _presetProfiles =>
+      NetworkSimulationProfile.presets;
+
+  bool get _isCustomSelected => _selectedPresetName == _customPresetName;
+
+  String get _selectedPresetName {
+    final known = _presetProfiles.any((p) => p.name == _networkSimulation.name);
+    return known ? _networkSimulation.name : _customPresetName;
+  }
 
   @override
   void initState() {
@@ -30,6 +44,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     // Assuming you want to read actual settings for other fields eventually,
     // right now just initialize URL decoding correctly.
     _urlDecodeEnabled = widget.session.urlDecodeEnabled;
+    _networkSimulation = widget.session.networkSimulation;
   }
 
   @override
@@ -103,8 +118,167 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                   ),
                 ]),
 
+                const SizedBox(height: 20),
+                _buildSectionTitle('2. Network Simulation'),
+                _buildSectionCard([
+                  _SettingsTile(
+                    icon: Icons.network_check,
+                    title: 'Preset',
+                    subtitle: _selectedPresetName,
+                    trailing: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        dropdownColor: NetSpecterTheme.surfaceContainer,
+                        value: _selectedPresetName,
+                        items: [
+                          ..._presetProfiles,
+                          const NetworkSimulationProfile(
+                            name: _customPresetName,
+                            offline: false,
+                            latencyMs: 0,
+                            downloadKbps: 0,
+                            uploadKbps: 0,
+                          ),
+                        ]
+                            .map((p) => DropdownMenuItem<String>(
+                                  value: p.name,
+                                  child: Text(
+                                    p.name,
+                                    style: const TextStyle(
+                                      color: NetSpecterTheme.textPrimary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          if (value == _customPresetName) {
+                            final next = _networkSimulation.copyWith(
+                              name: _customPresetName,
+                            );
+                            setState(() => _networkSimulation = next);
+                            widget.session.setNetworkSimulation(next);
+                            return;
+                          }
+
+                          final selected = _presetProfiles
+                              .firstWhere((p) => p.name == value);
+                          setState(() => _networkSimulation = selected);
+                          widget.session.setNetworkSimulation(selected);
+                        },
+                      ),
+                    ),
+                  ),
+                ]),
+                if (_isCustomSelected) ...[
+                  const SizedBox(height: 12),
+                  _buildThrottlingSlider(
+                    title: 'Latency',
+                    value: _networkSimulation.latencyMs.toDouble(),
+                    max: 2000,
+                    unit: 'ms',
+                    onChanged: (v) {
+                      final next = _networkSimulation.copyWith(
+                        name: _customPresetName,
+                        latencyMs: v.round(),
+                      );
+                      setState(() => _networkSimulation = next);
+                      widget.session.setNetworkSimulation(next);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildThrottlingSlider(
+                    title: 'Download',
+                    value: _networkSimulation.downloadKbps.toDouble(),
+                    max: 50000,
+                    unit: 'kbps',
+                    onChanged: (v) {
+                      final next = _networkSimulation.copyWith(
+                        name: _customPresetName,
+                        downloadKbps: v.round(),
+                      );
+                      setState(() => _networkSimulation = next);
+                      widget.session.setNetworkSimulation(next);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildThrottlingSlider(
+                    title: 'Upload',
+                    value: _networkSimulation.uploadKbps.toDouble(),
+                    max: 50000,
+                    unit: 'kbps',
+                    onChanged: (v) {
+                      final next = _networkSimulation.copyWith(
+                        name: _customPresetName,
+                        uploadKbps: v.round(),
+                      );
+                      setState(() => _networkSimulation = next);
+                      widget.session.setNetworkSimulation(next);
+                    },
+                  ),
+                ],
+
                 const SizedBox(height: 48), // Padding bottom
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThrottlingSlider({
+    required String title,
+    required double value,
+    required double max,
+    required String unit,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: NetSpecterTheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: NetSpecterTheme.textPrimary,
+                ),
+              ),
+              Text(
+                '${value.round()} $unit',
+                style: const TextStyle(
+                  fontFamily: NetSpecterTheme.fontFamily,
+                  package: NetSpecterTheme.fontPackage,
+                  fontSize: 12,
+                  color: NetSpecterTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: NetSpecterTheme.indigo500,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+              thumbColor: NetSpecterTheme.indigo400,
+              overlayColor: NetSpecterTheme.indigo500.withValues(alpha: 0.2),
+            ),
+            child: Slider(
+              value: value.clamp(0, max),
+              min: 0,
+              max: max,
+              divisions: 100,
+              onChanged: onChanged,
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import '../capture/http/netspecter_http_client.dart';
 import '../model/http_call_filter.dart';
 import '../model/index_entry.dart';
 import '../model/net_specter_settings.dart';
+import '../model/network_simulation.dart';
 import '../model/raw_capture.dart';
 import '../model/request_record.dart';
 import '../storage/inspector_session.dart';
@@ -47,6 +48,7 @@ class NetSpecter extends ChangeNotifier {
   HttpCallFilter get filter => _session.filter;
   int get droppedEvents => _session.droppedCount;
   bool get isEnabled => _session.isEnabled;
+  NetworkSimulationProfile get networkSimulation => _session.networkSimulation;
 
   // ---------------------------------------------------------------------------
   // Capture control
@@ -69,6 +71,11 @@ class NetSpecter extends ChangeNotifier {
       _session.loadDetail(entry);
 
   void applyFilter(HttpCallFilter filter) => _session.applyFilter(filter);
+
+  void setNetworkSimulation(NetworkSimulationProfile profile) =>
+      _session.setNetworkSimulation(profile);
+
+  void clearNetworkSimulation() => _session.clearNetworkSimulation();
 
   Future<void> clear() => _session.clear();
 
