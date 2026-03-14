@@ -1,27 +1,97 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 class JsonViewer extends StatefulWidget {
   final dynamic data;
   final String? searchQuery;
+  final int matchOffset;
+  final int? activeGlobalIndex;
 
   const JsonViewer({
     super.key,
     required this.data,
     this.searchQuery,
+    this.matchOffset = 0,
+    this.activeGlobalIndex,
   });
+
+  /// Format any data into a pretty-printed JSON string.
+  /// Used by _computeMatches in request_detail_page.dart for search counting.
+  static String formatData(dynamic data) {
+    if (data == null) return 'null';
+    try {
+      if (data is String) {
+        try {
+          final decoded = jsonDecode(data);
+          return const JsonEncoder.withIndent('  ').convert(decoded);
+        } catch (_) {
+          return data;
+        }
+      } else {
+        return const JsonEncoder.withIndent('  ').convert(data);
+      }
+    } catch (e) {
+      return data.toString();
+    }
+  }
+
+  /// Count search occurrences in a data subtree (recursive).
+  static int countMatches(dynamic data, String query) {
+    if (query.isEmpty) return 0;
+    final q = query.toLowerCase();
+
+    if (data == null) return _countIn('null', q);
+    if (data is bool) return _countIn(data.toString(), q);
+    if (data is num) return _countIn(data.toString(), q);
+    if (data is String) {
+      // Count in both key-display form (with quotes) and raw value
+      return _countIn(data, q);
+    }
+    if (data is List) {
+      int total = 0;
+      for (final item in data) {
+        total += countMatches(item, query);
+      }
+      return total;
+    }
+    if (data is Map) {
+      int total = 0;
+      for (final entry in data.entries) {
+        total += _countIn(entry.key.toString(), q);
+        total += countMatches(entry.value, query);
+      }
+      return total;
+    }
+    return _countIn(data.toString(), q);
+  }
+
+  static int _countIn(String text, String lowerQuery) {
+    int count = 0;
+    int start = 0;
+    final lower = text.toLowerCase();
+    while (true) {
+      final idx = lower.indexOf(lowerQuery, start);
+      if (idx < 0) break;
+      count++;
+      start = idx + lowerQuery.length;
+    }
+    return count;
+  }
 
   @override
   State<JsonViewer> createState() => _JsonViewerState();
 }
 
 class _JsonViewerState extends State<JsonViewer> {
-  // Theme colors matching UI.html
   static const _keyColor = Color(0xFF9CDCFE);
   static const _stringColor = Color(0xFFCE9178);
   static const _numberColor = Color(0xFFB5CEA8);
   static const _boolColor = Color(0xFF569CD6);
   static const _nullColor = Color(0xFF569CD6);
-  static const _punctuationColor = Color(0xFF9CA3AF); // gray-400
+  static const _punctuationColor = Color(0xFF9CA3AF);
+  static const _highlightColor = Color(0x80FFF59D);
+  static const _activeHighlightColor = Colors.orange;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +118,8 @@ class _JsonViewerState extends State<JsonViewer> {
           isLast: true,
           root: true,
           searchQuery: widget.searchQuery,
+          matchOffset: widget.matchOffset,
+          activeGlobalIndex: widget.activeGlobalIndex,
         ),
       ),
     );
@@ -60,6 +132,8 @@ class _JsonNode extends StatefulWidget {
   final bool isLast;
   final bool root;
   final String? searchQuery;
+  final int matchOffset;
+  final int? activeGlobalIndex;
 
   const _JsonNode({
     this.nodeKey,
@@ -67,6 +141,8 @@ class _JsonNode extends StatefulWidget {
     this.isLast = false,
     this.root = false,
     this.searchQuery,
+    this.matchOffset = 0,
+    this.activeGlobalIndex,
   });
 
   @override
@@ -74,26 +150,106 @@ class _JsonNode extends StatefulWidget {
 }
 
 class _JsonNodeState extends State<_JsonNode> {
-  bool _isExpanded = true;
+  late bool _isExpanded;
+  bool _userToggled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = _shouldExpandByDefault(widget.value);
+    // Expand if the active match is inside this subtree on first build
+    if (!_isExpanded && _subtreeContainsActiveMatch()) {
+      _isExpanded = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _JsonNode oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset user toggle when search navigation changes
+    if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
+        widget.searchQuery != oldWidget.searchQuery) {
+      _userToggled = false;
+    }
+    // Auto-expand if the active match is inside this subtree
+    if (!_userToggled && !_isExpanded && _subtreeContainsActiveMatch()) {
+      _isExpanded = true;
+    }
+  }
+
+  bool _subtreeContainsActiveMatch() {
+    final activeIdx = widget.activeGlobalIndex;
+    if (activeIdx == null) return false;
+    final q = widget.searchQuery;
+    if (q == null || q.isEmpty) return false;
+
+    final totalInSubtree = _totalMatchesInNode();
+    final start = widget.matchOffset;
+    final end = start + totalInSubtree;
+    return activeIdx >= start && activeIdx < end;
+  }
+
+  int _totalMatchesInNode() {
+    final q = widget.searchQuery;
+    if (q == null || q.isEmpty) return 0;
+    int total = 0;
+    // Count key matches
+    if (widget.nodeKey != null) {
+      total += JsonViewer._countIn(widget.nodeKey!, q.toLowerCase());
+    }
+    // Count value matches
+    total += JsonViewer.countMatches(widget.value, q);
+    return total;
+  }
+
+  static bool _shouldExpandByDefault(dynamic value) {
+    if (value is List) return value.length <= 20;
+    if (value is Map) return value.length <= 20;
+    return true;
+  }
 
   void _toggle() {
     setState(() {
       _isExpanded = !_isExpanded;
+      _userToggled = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final keyHtml = widget.nodeKey != null
-        ? TextSpan(children: [
-            TextSpan(
-                text: '"${widget.nodeKey}"',
-                style: const TextStyle(color: _JsonViewerState._keyColor)),
-            const TextSpan(
-                text: ': ',
-                style: TextStyle(color: _JsonViewerState._punctuationColor)),
-          ])
-        : const TextSpan();
+    final query = widget.searchQuery?.toLowerCase().trim();
+    final hasQuery = query != null && query.isNotEmpty;
+
+    // Match offset for this node's key
+    int currentOffset = widget.matchOffset;
+
+    // Build key span with highlighting
+    TextSpan keyHtml;
+    if (widget.nodeKey != null) {
+      final keyText = '"${widget.nodeKey}"';
+      if (hasQuery) {
+        final keySpans = _highlightText(keyText, query, currentOffset,
+            widget.activeGlobalIndex, _JsonViewerState._keyColor);
+        currentOffset += JsonViewer._countIn(keyText, query);
+        keyHtml = TextSpan(children: [
+          ...keySpans,
+          const TextSpan(
+              text: ': ',
+              style: TextStyle(color: _JsonViewerState._punctuationColor)),
+        ]);
+      } else {
+        keyHtml = TextSpan(children: [
+          TextSpan(
+              text: keyText,
+              style: const TextStyle(color: _JsonViewerState._keyColor)),
+          const TextSpan(
+              text: ': ',
+              style: TextStyle(color: _JsonViewerState._punctuationColor)),
+        ]);
+      }
+    } else {
+      keyHtml = const TextSpan();
+    }
 
     final comma = widget.isLast
         ? const TextSpan()
@@ -101,122 +257,49 @@ class _JsonNodeState extends State<_JsonNode> {
             text: ',',
             style: TextStyle(color: _JsonViewerState._punctuationColor));
 
+    // Leaf nodes
     if (widget.value == null) {
-      return _buildLine(
-          keyHtml,
-          const TextSpan(
-              text: 'null',
-              style: TextStyle(color: _JsonViewerState._nullColor)),
-          comma);
+      return _buildLeafLine(keyHtml, 'null', _JsonViewerState._nullColor,
+          currentOffset, query, comma);
     }
     if (widget.value is bool) {
-      return _buildLine(
-          keyHtml,
-          TextSpan(
-              text: widget.value.toString(),
-              style: const TextStyle(color: _JsonViewerState._boolColor)),
-          comma);
+      return _buildLeafLine(keyHtml, widget.value.toString(),
+          _JsonViewerState._boolColor, currentOffset, query, comma);
     }
     if (widget.value is num) {
-      return _buildLine(
-          keyHtml,
-          TextSpan(
-              text: widget.value.toString(),
-              style: const TextStyle(color: _JsonViewerState._numberColor)),
-          comma);
+      return _buildLeafLine(keyHtml, widget.value.toString(),
+          _JsonViewerState._numberColor, currentOffset, query, comma);
     }
     if (widget.value is String) {
-      final text = widget.value as String;
-      final query = widget.searchQuery?.toLowerCase().trim();
-
-      if (query == null || query.isEmpty) {
-        return _buildLine(
-          keyHtml,
-          TextSpan(
-            text: '"$text"',
-            style: const TextStyle(color: _JsonViewerState._stringColor),
-          ),
-          comma,
-        );
-      }
-
-      final lower = text.toLowerCase();
-      var start = 0;
-      final spans = <TextSpan>[];
-      while (true) {
-        final index = lower.indexOf(query, start);
-        if (index < 0) {
-          spans.add(
-            TextSpan(
-              text: text.substring(start),
-              style: const TextStyle(color: _JsonViewerState._stringColor),
-            ),
-          );
-          break;
-        }
-        if (index > start) {
-          spans.add(
-            TextSpan(
-              text: text.substring(start, index),
-              style: const TextStyle(color: _JsonViewerState._stringColor),
-            ),
-          );
-        }
-        spans.add(
-          TextSpan(
-            text: text.substring(index, index + query.length),
-            style: const TextStyle(
-              color: _JsonViewerState._stringColor,
-              backgroundColor: Color(0x80FFF59D),
-            ),
-          ),
-        );
-        start = index + query.length;
-      }
-
-      return _buildLine(
-        keyHtml,
-        TextSpan(children: spans),
-        comma,
-      );
+      final text = '"${widget.value}"';
+      return _buildLeafLine(keyHtml, text, _JsonViewerState._stringColor,
+          currentOffset, query, comma);
     }
 
+    // Collection nodes
     if (widget.value is List) {
       final list = widget.value as List;
       if (list.isEmpty) {
-        return _buildLine(
-            keyHtml,
-            const TextSpan(
-                text: '[]',
-                style: TextStyle(color: _JsonViewerState._punctuationColor)),
-            comma);
+        return _buildSimpleLine(keyHtml, '[]', comma);
       }
       return _buildCollapsible(
         keyHtml: keyHtml,
         openBracket: '[',
         closeBracket: ']',
         comma: comma,
-        children: list
-            .asMap()
-            .entries
-            .map((e) => _JsonNode(
-                  value: e.value,
-                  isLast: e.key == list.length - 1,
-                  searchQuery: widget.searchQuery,
-                ))
-            .toList(),
+        entries: list.asMap().entries.map((e) => _ChildEntry(
+              key: null,
+              value: e.value,
+              isLast: e.key == list.length - 1,
+            )),
+        valueMatchOffset: currentOffset,
       );
     }
 
     if (widget.value is Map) {
       final map = widget.value as Map;
       if (map.isEmpty) {
-        return _buildLine(
-            keyHtml,
-            const TextSpan(
-                text: '{}',
-                style: TextStyle(color: _JsonViewerState._punctuationColor)),
-            comma);
+        return _buildSimpleLine(keyHtml, '{}', comma);
       }
       final entries = map.entries.toList();
       return _buildCollapsible(
@@ -224,24 +307,49 @@ class _JsonNodeState extends State<_JsonNode> {
         openBracket: '{',
         closeBracket: '}',
         comma: comma,
-        children: entries
-            .asMap()
-            .entries
-            .map((e) => _JsonNode(
-                  nodeKey: e.value.key.toString(),
-                  value: e.value.value,
-                  isLast: e.key == entries.length - 1,
-                  searchQuery: widget.searchQuery,
-                ))
-            .toList(),
+        entries: entries.asMap().entries.map((e) => _ChildEntry(
+              key: e.value.key.toString(),
+              value: e.value.value,
+              isLast: e.key == entries.length - 1,
+            )),
+        valueMatchOffset: currentOffset,
       );
     }
 
-    return _buildLine(keyHtml, TextSpan(text: widget.value.toString()), comma);
+    return _buildLeafLine(keyHtml, widget.value.toString(),
+        _JsonViewerState._punctuationColor, currentOffset, query, comma);
   }
 
-  Widget _buildLine(TextSpan keySpan, TextSpan valueSpan, TextSpan commaSpan) {
+  Widget _buildLeafLine(TextSpan keySpan, String valueText, Color valueColor,
+      int matchOffset, String? query, TextSpan commaSpan) {
+    final hasQuery = query != null && query.isNotEmpty;
+
+    TextSpan valueSpan;
+    bool hasActiveMatch = false;
+    if (hasQuery) {
+      final spans = _highlightText(
+          valueText, query, matchOffset, widget.activeGlobalIndex, valueColor);
+      hasActiveMatch = spans.any((s) =>
+          s.style?.backgroundColor == _JsonViewerState._activeHighlightColor);
+      valueSpan = TextSpan(children: spans);
+    } else {
+      valueSpan = TextSpan(text: valueText, style: TextStyle(color: valueColor));
+    }
+
+    final key = hasActiveMatch ? GlobalKey() : null;
+    if (hasActiveMatch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = key?.currentContext;
+        if (ctx != null && ctx.mounted) {
+          Scrollable.ensureVisible(ctx,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut);
+        }
+      });
+    }
+
     return Padding(
+      key: key,
       padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
       child: RichText(
         text: TextSpan(
@@ -252,13 +360,61 @@ class _JsonNodeState extends State<_JsonNode> {
     );
   }
 
+  Widget _buildSimpleLine(TextSpan keySpan, String text, TextSpan commaSpan) {
+    return Padding(
+      padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
+      child: RichText(
+        text: TextSpan(
+          style: DefaultTextStyle.of(context).style,
+          children: [
+            keySpan,
+            TextSpan(
+                text: text,
+                style: const TextStyle(
+                    color: _JsonViewerState._punctuationColor)),
+            commaSpan,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCollapsible({
     required TextSpan keyHtml,
     required String openBracket,
     required String closeBracket,
     required TextSpan comma,
-    required List<Widget> children,
+    required Iterable<_ChildEntry> entries,
+    required int valueMatchOffset,
   }) {
+    // Build children with correct match offsets
+    List<Widget>? children;
+    if (_isExpanded) {
+      final query = widget.searchQuery;
+      int childOffset = valueMatchOffset;
+      children = [];
+      for (final entry in entries) {
+        final child = _JsonNode(
+          nodeKey: entry.key,
+          value: entry.value,
+          isLast: entry.isLast,
+          searchQuery: query,
+          matchOffset: childOffset,
+          activeGlobalIndex: widget.activeGlobalIndex,
+        );
+        children.add(child);
+
+        // Advance offset by this child's total matches
+        if (query != null && query.isNotEmpty) {
+          if (entry.key != null) {
+            childOffset +=
+                JsonViewer._countIn('"${entry.key}"', query.toLowerCase());
+          }
+          childOffset += JsonViewer.countMatches(entry.value, query);
+        }
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
       child: Column(
@@ -272,7 +428,7 @@ class _JsonNodeState extends State<_JsonNode> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Transform.rotate(
-                  angle: _isExpanded ? 0 : -1.5708, // 0 or -90 deg
+                  angle: _isExpanded ? 0 : -1.5708,
                   child: const Icon(Icons.arrow_drop_down,
                       size: 16, color: Colors.grey),
                 ),
@@ -304,20 +460,22 @@ class _JsonNodeState extends State<_JsonNode> {
               ],
             ),
           ),
-          if (_isExpanded)
-            Container(
-              margin: const EdgeInsets.only(left: 8.0),
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    width: 1.0,
+          if (_isExpanded && children != null)
+            RepaintBoundary(
+              child: Container(
+                margin: const EdgeInsets.only(left: 8.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      width: 1.0,
+                    ),
                   ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: children,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
               ),
             ),
           if (_isExpanded)
@@ -338,4 +496,57 @@ class _JsonNodeState extends State<_JsonNode> {
       ),
     );
   }
+
+  /// Build highlighted TextSpan list for a text with search matches.
+  static List<TextSpan> _highlightText(String text, String lowerQuery,
+      int matchOffset, int? activeGlobalIndex, Color baseColor) {
+    final spans = <TextSpan>[];
+    final lowerText = text.toLowerCase();
+    int start = 0;
+    int currentMatch = matchOffset;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index < 0) {
+        if (start < text.length) {
+          spans.add(TextSpan(
+            text: text.substring(start),
+            style: TextStyle(color: baseColor),
+          ));
+        }
+        break;
+      }
+
+      if (index > start) {
+        spans.add(TextSpan(
+          text: text.substring(start, index),
+          style: TextStyle(color: baseColor),
+        ));
+      }
+
+      final isActive = currentMatch == activeGlobalIndex;
+      currentMatch++;
+
+      spans.add(TextSpan(
+        text: text.substring(index, index + lowerQuery.length),
+        style: TextStyle(
+          color: baseColor,
+          backgroundColor: isActive
+              ? _JsonViewerState._activeHighlightColor
+              : _JsonViewerState._highlightColor,
+        ),
+      ));
+
+      start = index + lowerQuery.length;
+    }
+
+    return spans;
+  }
+}
+
+class _ChildEntry {
+  final String? key;
+  final dynamic value;
+  final bool isLast;
+  const _ChildEntry({this.key, required this.value, required this.isLast});
 }

@@ -1,10 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
 import 'package:netspecter/src/ui/widgets/json_viewer.dart';
-import 'package:netspecter/src/ui/widgets/toast_notification.dart';
 
 import '../../model/index_entry.dart';
 import '../../model/request_record.dart';
@@ -33,25 +31,69 @@ class _RequestDetailPageState extends State<RequestDetailPage>
   String _query = '';
   int _currentMatchIndex = 0;
 
+  // Cached data
+  RequestRecord? _cachedRecord;
+  List<_DetailMatch> _cachedMatches = const [];
+  String _cachedQuery = '';
+
+  // Track which tabs have been visited (for lazy building)
+  final Set<int> _visitedTabs = {0};
+
   @override
   void initState() {
     super.initState();
     _recordFuture = widget.session.loadDetail(widget.entry);
+    _recordFuture.then((record) {
+      if (mounted) {
+        setState(() {
+          _cachedRecord = record;
+          _recomputeMatches();
+        });
+        // Pre-build remaining tabs on the next frame after initial render
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              for (int i = 0; i < _tabController.length; i++) {
+                _visitedTabs.add(i);
+              }
+            });
+          }
+        });
+      }
+    });
     final isWs = widget.entry.method == 'WS';
     _tabController = TabController(length: isWs ? 2 : 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      final idx = _tabController.index;
+      if (!_visitedTabs.contains(idx)) {
+        setState(() {
+          _visitedTabs.add(idx);
+        });
+      }
+    }
+  }
+
+  void _recomputeMatches() {
+    final record = _cachedRecord;
+    if (record == null) {
+      _cachedMatches = const [];
+      return;
+    }
+    final isWs = widget.entry.method == 'WS';
+    _cachedMatches = _computeMatches(record, _query, isWs, _tryParseJson);
+    _cachedQuery = _query;
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _copyAsCurl() {
-    // TODO: Generate cURL command
-    Clipboard.setData(const ClipboardData(text: 'curl ...'));
-    ToastNotification.show(context, 'Copied as cURL!');
   }
 
   dynamic _tryParseJson(String? content) {
@@ -117,26 +159,22 @@ class _RequestDetailPageState extends State<RequestDetailPage>
           ),
         ],
       ),
-      body: FutureBuilder<RequestRecord>(
-        future: _recordFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+      body: Builder(
+        builder: (context) {
+          final record = _cachedRecord;
+          if (record == null) {
             return const Center(
               child:
                   CircularProgressIndicator(color: NetSpecterTheme.indigo500),
             );
           }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
+
+          // Recompute matches only if query changed
+          if (_cachedQuery != _query) {
+            _recomputeMatches();
           }
 
-          final record = snapshot.data!;
-          final matches = _computeMatches(record, _query, isWs);
+          final matches = _cachedMatches;
           final totalMatches = matches.length;
 
           int effectiveIndex = _currentMatchIndex;
@@ -149,15 +187,19 @@ class _RequestDetailPageState extends State<RequestDetailPage>
             effectiveIndex = 0;
           }
 
-          final active = totalMatches == 0 ? null : matches[effectiveIndex];
+          final activeGlobalIndex = totalMatches == 0 ? null : effectiveIndex;
+          final activeMatch =
+              totalMatches == 0 ? null : matches[effectiveIndex];
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (active != null &&
-                _tabController.index != active.tabIndex &&
-                _tabController.length > active.tabIndex) {
-              _tabController.animateTo(active.tabIndex);
-            }
-          });
+          if (activeMatch != null &&
+              _tabController.index != activeMatch.tabIndex &&
+              _tabController.length > activeMatch.tabIndex) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _tabController.animateTo(activeMatch.tabIndex);
+              }
+            });
+          }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,7 +223,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        onChanged: (value) {
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (value) {
                           setState(() {
                             _query = value.trim();
                             _currentMatchIndex = 0;
@@ -202,13 +245,13 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                           fillColor: NetSpecterTheme.surfaceContainer,
                           isDense: true,
                           contentPadding:
-                              const EdgeInsets.symmetric(vertical: 10.0),
+                              const EdgeInsets.symmetric(vertical: 12.0),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(30.0),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(30.0),
                             borderSide: const BorderSide(
                               color: NetSpecterTheme.indigo500,
                               width: 1.0,
@@ -265,80 +308,61 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                 ),
               ),
               // TabBar
-              Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: NetSpecterTheme.indigo500,
-                  labelColor: NetSpecterTheme.indigo400,
-                  unselectedLabelColor: NetSpecterTheme.textQuaternary,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  tabs: isWs
-                      ? const [
-                          Tab(text: 'Overview'),
-                          Tab(text: 'Messages'),
-                        ]
-                      : const [
-                          Tab(text: 'Overview'),
-                          Tab(text: 'Request'),
-                          Tab(text: 'Response'),
-                          Tab(text: 'Messages'),
-                        ],
-                ),
+              TabBar(
+                controller: _tabController,
+                indicatorColor: NetSpecterTheme.indigo500,
+                labelColor: NetSpecterTheme.indigo400,
+                unselectedLabelColor: NetSpecterTheme.textQuaternary,
+                dividerColor: Colors.transparent,
+                tabs: isWs
+                    ? const [
+                        Tab(text: 'Overview'),
+                        Tab(text: 'Messages'),
+                      ]
+                    : const [
+                        Tab(text: 'Overview'),
+                        Tab(text: 'Request'),
+                        Tab(text: 'Response'),
+                        Tab(text: 'Messages'),
+                      ],
               ),
               Expanded(
-                child: Stack(
-                  children: [
-                    TabBarView(
-                      controller: _tabController,
+                child: AnimatedBuilder(
+                  animation: _tabController,
+                  builder: (context, _) {
+                    final tabIndex = _tabController.index;
+                    return IndexedStack(
+                      index: tabIndex,
                       children: isWs
                           ? [
-                              _buildOverviewTab(record, active),
-                              _buildMessagesTab(record),
+                              _visitedTabs.contains(0)
+                                  ? _buildOverviewTab(
+                                      record, matches, activeGlobalIndex)
+                                  : const SizedBox.shrink(),
+                              _visitedTabs.contains(1)
+                                  ? _buildMessagesTab(record)
+                                  : const SizedBox.shrink(),
                             ]
                           : [
-                              _buildOverviewTab(record, active),
-                              _buildRequestTab(record, active),
-                              _buildResponseTab(record, active),
-                              // Using _buildErrorTab for Messages (or whatever Error tab was)
-                              _buildErrorTab(record, active),
+                              _visitedTabs.contains(0)
+                                  ? _buildOverviewTab(
+                                      record, matches, activeGlobalIndex)
+                                  : const SizedBox.shrink(),
+                              _visitedTabs.contains(1)
+                                  ? _buildRequestTab(
+                                      record, matches, activeGlobalIndex)
+                                  : const SizedBox.shrink(),
+                              _visitedTabs.contains(2)
+                                  ? _buildResponseTab(
+                                      record, matches, activeGlobalIndex)
+                                  : const SizedBox.shrink(),
+                              _visitedTabs.contains(3)
+                                  ? _buildErrorTab(
+                                      record, matches, activeGlobalIndex)
+                                  : const SizedBox.shrink(),
                             ],
-                    ),
-                    // FAB overlay
-                    Positioned(
-                      bottom: 24,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: ElevatedButton.icon(
-                          onPressed: _copyAsCurl,
-                          icon: const Icon(Icons.terminal, size: 18),
-                          label: const Text('Copy as cURL'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: NetSpecterTheme.indigo500,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24.0,
-                              vertical: 14.0,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30.0),
-                            ),
-                            elevation: 8,
-                            shadowColor: NetSpecterTheme.indigo500
-                                .withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -348,7 +372,9 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     );
   }
 
-  Widget _buildOverviewTab(RequestRecord record, _DetailMatch? active) {
+
+  Widget _buildOverviewTab(RequestRecord record, List<_DetailMatch> matches,
+      int? activeGlobalIndex) {
     final mStyle = NetSpecterTheme.getMethodStyle(record.method);
 
     String displayUrl = record.url;
@@ -359,51 +385,60 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     }
 
     return ListView(
-      padding:
-          const EdgeInsets.all(16.0).copyWith(bottom: 100), // padding for FAB
+      padding: const EdgeInsets.all(16.0),
       children: [
-        _buildOverviewRow('URL', displayUrl,
-            highlight: _isActive(active, 0, _DetailSection.overviewUrl)),
+        _buildOverviewRow('URL', displayUrl, _DetailSection.overviewUrl,
+            matches, activeGlobalIndex),
         const SizedBox(height: 16),
         _buildOverviewRow(
           'Method',
           record.method,
+          _DetailSection.overviewMethod,
+          matches,
+          activeGlobalIndex,
           valueStyle: TextStyle(
             color: mStyle.text,
             fontFamily: 'monospace',
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
-          highlight: _isActive(active, 0, _DetailSection.overviewMethod),
         ),
         const SizedBox(height: 16),
         _buildOverviewRow(
           'Status',
           '${record.statusCode}',
-          highlight: _isActive(active, 0, _DetailSection.overviewStatus),
+          _DetailSection.overviewStatus,
+          matches,
+          activeGlobalIndex,
         ),
         const SizedBox(height: 16),
         _buildOverviewRow(
           'Duration',
           '${record.durationMs} ms',
-          highlight: _isActive(active, 0, _DetailSection.overviewDuration),
+          _DetailSection.overviewDuration,
+          matches,
+          activeGlobalIndex,
         ),
         const SizedBox(height: 16),
         _buildOverviewRow(
           'Time',
           record.timestamp.toIso8601String(),
-          highlight: _isActive(active, 0, _DetailSection.overviewTime),
+          _DetailSection.overviewTime,
+          matches,
+          activeGlobalIndex,
         ),
         if (record.isBodyTruncated) ...[
           const SizedBox(height: 16),
           _buildOverviewRow(
             'Note',
             'Body truncated — response exceeded the size limit.',
+            _DetailSection.overviewNote,
+            matches,
+            activeGlobalIndex,
             valueStyle: const TextStyle(
               color: NetSpecterTheme.yellow400,
               fontSize: 12,
             ),
-            highlight: _isActive(active, 0, _DetailSection.overviewNote),
           ),
         ],
       ],
@@ -412,22 +447,20 @@ class _RequestDetailPageState extends State<RequestDetailPage>
 
   Widget _buildOverviewRow(
     String label,
-    String value, {
+    String value,
+    _DetailSection section,
+    List<_DetailMatch> matches,
+    int? activeGlobalIndex, {
     TextStyle? valueStyle,
-    bool highlight = false,
   }) {
-    final key = GlobalKey();
-    if (highlight) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final ctx = key.currentContext;
-        if (ctx != null) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 200),
-          );
-        }
-      });
-    }
+    int matchOffset = matches.indexWhere((m) => m.section == section);
+    if (matchOffset < 0) matchOffset = 0;
+    final sectionMatchCount = matches.where((m) => m.section == section).length;
+
+    final highlight = activeGlobalIndex != null &&
+        activeGlobalIndex >= matchOffset &&
+        activeGlobalIndex < matchOffset + sectionMatchCount;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -453,65 +486,92 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                 .copyWith(
               backgroundColor: highlight ? const Color(0x40FFF59D) : null,
             ),
-            key: key,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRequestTab(RequestRecord record, _DetailMatch? active) {
+  Widget _buildRequestTab(RequestRecord record, List<_DetailMatch> matches,
+      int? activeGlobalIndex) {
+    final uri = Uri.tryParse(record.url);
+    final hasQueryParams = uri != null && uri.queryParameters.isNotEmpty;
+
     return ListView(
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Request Headers'),
         _buildJsonBox(
           record.requestHeaders,
-          highlight: _isActive(active, 1, _DetailSection.requestHeaders),
+          _DetailSection.requestHeaders,
+          matches,
+          activeGlobalIndex,
         ),
         const SizedBox(height: 24),
+        if (hasQueryParams) ...[
+          _buildSectionHeader('Query Parameters'),
+          _buildJsonBox(
+            uri.queryParameters,
+            _DetailSection.queryParams,
+            matches,
+            activeGlobalIndex,
+          ),
+          const SizedBox(height: 24),
+        ],
         _buildSectionHeader('Request Body', color: NetSpecterTheme.indigo400),
         _buildJsonBox(
           _tryParseJson(record.requestBodyPreview),
-          highlight: _isActive(active, 1, _DetailSection.requestBody),
+          _DetailSection.requestBody,
+          matches,
+          activeGlobalIndex,
         ),
       ],
     );
   }
 
-  Widget _buildResponseTab(RequestRecord record, _DetailMatch? active) {
+  Widget _buildResponseTab(RequestRecord record, List<_DetailMatch> matches,
+      int? activeGlobalIndex) {
     return ListView(
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Response Headers'),
         _buildJsonBox(
           record.responseHeaders,
-          highlight: _isActive(active, 2, _DetailSection.responseHeaders),
+          _DetailSection.responseHeaders,
+          matches,
+          activeGlobalIndex,
         ),
         const SizedBox(height: 24),
         _buildSectionHeader('Response Body', color: NetSpecterTheme.green400),
         _buildJsonBox(
           _tryParseJson(record.responseBodyPreview),
-          highlight: _isActive(active, 2, _DetailSection.responseBody),
+          _DetailSection.responseBody,
+          matches,
+          activeGlobalIndex,
         ),
       ],
     );
   }
 
-  Widget _buildErrorTab(RequestRecord record, _DetailMatch? active) {
+  Widget _buildErrorTab(RequestRecord record, List<_DetailMatch> matches,
+      int? activeGlobalIndex) {
     return ListView(
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Error Type', color: NetSpecterTheme.yellow400),
         _buildJsonBox(
           record.errorType ?? 'None',
-          highlight: _isActive(active, 3, _DetailSection.errorType),
+          _DetailSection.errorType,
+          matches,
+          activeGlobalIndex,
         ),
         const SizedBox(height: 24),
         _buildSectionHeader('Error Message', color: NetSpecterTheme.yellow400),
         _buildJsonBox(
           record.errorMessage ?? 'None',
-          highlight: _isActive(active, 3, _DetailSection.errorMessage),
+          _DetailSection.errorMessage,
+          matches,
+          activeGlobalIndex,
         ),
       ],
     );
@@ -528,7 +588,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
+      padding: const EdgeInsets.all(16.0),
       itemCount: messages.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -653,57 +713,29 @@ class _RequestDetailPageState extends State<RequestDetailPage>
   }
 
   Widget _buildJsonBox(
-    dynamic data, {
-    bool highlight = false,
-  }) {
-    final key = GlobalKey();
-    if (highlight) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final ctx = key.currentContext;
-        if (ctx != null) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 200),
-          );
-        }
-      });
-    }
-    return Stack(
-      children: [
-        Container(
-          key: key,
-          width: double.infinity,
-          padding: const EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: NetSpecterTheme.surfaceContainer,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: JsonViewer(
-            data: data,
-            searchQuery: _query.isEmpty ? null : _query,
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: IconButton(
-            icon: const Icon(Icons.copy,
-                size: 16, color: NetSpecterTheme.textMuted),
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: '...'));
-              ToastNotification.show(context, 'Copied!');
-            },
-            tooltip: 'Copy',
-          ),
-        ),
-      ],
-    );
-  }
+    dynamic data,
+    _DetailSection section,
+    List<_DetailMatch> matches,
+    int? activeGlobalIndex,
+  ) {
+    int matchOffset = matches.indexWhere((m) => m.section == section);
+    if (matchOffset < 0) matchOffset = 0;
 
-  bool _isActive(_DetailMatch? active, int tabIndex, _DetailSection section) {
-    if (active == null) return false;
-    return active.tabIndex == tabIndex && active.section == section;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: NetSpecterTheme.surfaceContainer,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: JsonViewer(
+        data: data,
+        searchQuery: _query.isEmpty ? null : _query,
+        matchOffset: matchOffset,
+        activeGlobalIndex: activeGlobalIndex,
+      ),
+    );
   }
 }
 
@@ -720,6 +752,7 @@ enum _DetailSection {
   overviewDuration,
   overviewTime,
   overviewNote,
+  queryParams,
   requestHeaders,
   requestBody,
   responseHeaders,
@@ -732,46 +765,55 @@ List<_DetailMatch> _computeMatches(
   RequestRecord record,
   String query,
   bool isWs,
+  dynamic Function(String?) tryParseJson,
 ) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return const [];
 
   final matches = <_DetailMatch>[];
 
-  bool contains(String? text) {
-    if (text == null || text.isEmpty) return false;
-    return text.toLowerCase().contains(q);
+  int countOccurrences(String? text) {
+    if (text == null || text.isEmpty) return 0;
+    int c = 0;
+    int start = 0;
+    final lower = text.toLowerCase();
+    while (true) {
+      final idx = lower.indexOf(q, start);
+      if (idx < 0) break;
+      c++;
+      start = idx + q.length;
+    }
+    return c;
   }
 
-  void addIf(bool cond, int tabIndex, _DetailSection section) {
-    if (cond) {
+  void addMatches(int count, int tabIndex, _DetailSection section) {
+    for (int i = 0; i < count; i++) {
       matches.add(_DetailMatch(tabIndex: tabIndex, section: section));
     }
   }
 
   // Overview
-  addIf(contains(record.url), 0, _DetailSection.overviewUrl);
-  addIf(contains(record.method), 0, _DetailSection.overviewMethod);
-  addIf(
-    contains(record.statusCode > 0 ? record.statusCode.toString() : 'N/A'),
+  addMatches(countOccurrences(record.url), 0, _DetailSection.overviewUrl);
+  addMatches(countOccurrences(record.method), 0, _DetailSection.overviewMethod);
+  addMatches(
+    countOccurrences(
+        record.statusCode > 0 ? record.statusCode.toString() : 'N/A'),
     0,
     _DetailSection.overviewStatus,
   );
-  addIf(
-    contains('${record.durationMs} ms'),
+  addMatches(
+    countOccurrences('${record.durationMs} ms'),
     0,
     _DetailSection.overviewDuration,
   );
-  addIf(
-    contains(record.timestamp.toIso8601String()),
+  addMatches(
+    countOccurrences(record.timestamp.toIso8601String()),
     0,
     _DetailSection.overviewTime,
   );
   if (record.isBodyTruncated) {
-    addIf(
-      contains(
-        'Body truncated — response exceeded the size limit.',
-      ),
+    addMatches(
+      countOccurrences('Body truncated — response exceeded the size limit.'),
       0,
       _DetailSection.overviewNote,
     );
@@ -779,37 +821,42 @@ List<_DetailMatch> _computeMatches(
 
   if (!isWs) {
     // Request tab index 1
-    addIf(
-      contains(jsonEncode(record.requestHeaders)),
+    final uri = Uri.tryParse(record.url);
+    if (uri != null && uri.queryParameters.isNotEmpty) {
+      addMatches(JsonViewer.countMatches(uri.queryParameters, query), 1,
+          _DetailSection.queryParams);
+    }
+    addMatches(
+      JsonViewer.countMatches(record.requestHeaders, query),
       1,
       _DetailSection.requestHeaders,
     );
-    addIf(
-      contains(record.requestBodyPreview),
+    addMatches(
+      JsonViewer.countMatches(tryParseJson(record.requestBodyPreview), query),
       1,
       _DetailSection.requestBody,
     );
 
     // Response tab index 2
-    addIf(
-      contains(jsonEncode(record.responseHeaders)),
+    addMatches(
+      JsonViewer.countMatches(record.responseHeaders, query),
       2,
       _DetailSection.responseHeaders,
     );
-    addIf(
-      contains(record.responseBodyPreview),
+    addMatches(
+      JsonViewer.countMatches(tryParseJson(record.responseBodyPreview), query),
       2,
       _DetailSection.responseBody,
     );
 
     // Error tab index 3
-    addIf(
-      contains(record.errorType ?? 'None'),
+    addMatches(
+      JsonViewer.countMatches(record.errorType ?? 'None', query),
       3,
       _DetailSection.errorType,
     );
-    addIf(
-      contains(record.errorMessage ?? 'None'),
+    addMatches(
+      JsonViewer.countMatches(record.errorMessage ?? 'None', query),
       3,
       _DetailSection.errorMessage,
     );
@@ -817,3 +864,4 @@ List<_DetailMatch> _computeMatches(
 
   return matches;
 }
+
