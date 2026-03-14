@@ -37,7 +37,8 @@ class DetailTabsBuilder {
           DetailSection.overviewMethod,
           valueStyle: TextStyle(
             color: mStyle.text,
-            fontFamily: 'monospace',
+            fontFamily: NetSpecterTheme.fontFamily,
+            package: NetSpecterTheme.fontPackage,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -185,7 +186,8 @@ class DetailTabsBuilder {
                   child: const Text(
                     'Live',
                     style: TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: NetSpecterTheme.fontFamily,
+                      package: NetSpecterTheme.fontPackage,
                       fontSize: 10,
                       color: NetSpecterTheme.green400,
                     ),
@@ -242,7 +244,8 @@ class DetailTabsBuilder {
                     Text(
                       msg['time'] ?? '',
                       style: const TextStyle(
-                        fontFamily: 'monospace',
+                        fontFamily: NetSpecterTheme.fontFamily,
+                        package: NetSpecterTheme.fontPackage,
                         fontSize: 10,
                         color: NetSpecterTheme.textMuted,
                       ),
@@ -296,7 +299,8 @@ class DetailTabsBuilder {
             value,
             style: (valueStyle ??
                     const TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: NetSpecterTheme.fontFamily,
+                      package: NetSpecterTheme.fontPackage,
                       fontSize: 12,
                       color: NetSpecterTheme.textSecondary,
                     ))

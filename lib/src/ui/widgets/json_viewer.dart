@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:netspecter/src/ui/netspecter_theme.dart';
 
 class JsonViewer extends StatefulWidget {
   final dynamic data;
@@ -126,7 +127,9 @@ class _JsonViewerState extends State<JsonViewer> {
             scrollDirection: Axis.horizontal,
             child: DefaultTextStyle(
               style: const TextStyle(
-                fontFamily: 'monospace',
+                fontFamily: NetSpecterTheme.fontFamily,
+                package: NetSpecterTheme.fontPackage,
+                fontFamilyFallback: ['monospace'],
                 fontSize: 12,
                 height: 1.5,
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:netspecter/src/ui/netspecter_theme.dart';
 import 'package:netspecter/src/ui/detail/request_detail_page.dart';
+import 'package:netspecter/src/ui/netspecter_theme.dart';
+
 import '../../storage/inspector_session.dart';
 
 class NetworkTab extends StatelessWidget {
@@ -181,7 +182,8 @@ class _RequestLogItem extends StatelessWidget {
                   Text(
                     url,
                     style: const TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: NetSpecterTheme.fontFamily,
+                      package: NetSpecterTheme.fontPackage,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: NetSpecterTheme.textSecondary,

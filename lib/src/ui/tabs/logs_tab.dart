@@ -21,7 +21,8 @@ class LogsTab extends StatelessWidget {
                 child: Text(
                   log['time']!,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: NetSpecterTheme.fontFamily,
+                    package: NetSpecterTheme.fontPackage,
                     fontSize: 12,
                     color: NetSpecterTheme.textMuted,
                   ),
@@ -32,7 +33,8 @@ class LogsTab extends StatelessWidget {
                 child: Text(
                   log['message']!,
                   style: TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: NetSpecterTheme.fontFamily,
+                    package: NetSpecterTheme.fontPackage,
                     fontSize: 13,
                     color: _getLogColor(log['type']!),
                   ),

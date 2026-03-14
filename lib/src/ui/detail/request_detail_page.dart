@@ -137,7 +137,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
         title: Text(
           path,
           style: const TextStyle(
-            fontFamily: 'monospace',
+            fontFamily: NetSpecterTheme.fontFamily,
+            package: NetSpecterTheme.fontPackage,
             fontSize: 14,
             color: NetSpecterTheme.textPrimary,
           ),

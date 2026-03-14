@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class NetSpecterTheme {
+  static const String fontFamily = 'JetBrainsMono';
+  static const String fontPackage = 'netspecter';
+
   static const Color surface = Color(0xFF121212);
   static const Color surfaceContainer = Color(0xFF1E1E1E);
 
@@ -35,6 +38,7 @@ class NetSpecterTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
+      fontFamily: fontFamily,
       scaffoldBackgroundColor: surface,
       primaryColor: indigo500,
       colorScheme: const ColorScheme.dark(

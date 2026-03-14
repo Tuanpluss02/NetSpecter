@@ -25,6 +25,7 @@ class NetSpecterExampleApp extends StatelessWidget {
       title: 'NetSpecter Example',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        fontFamily: 'JetBrainsMono',
       ),
       home: NetSpecterOverlay(
         session: session,
