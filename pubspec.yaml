@@ -4,21 +4,20 @@ version: 0.0.1
 homepage: https://github.com/Tuanpluss02/NetSpecter
 repository: https://github.com/Tuanpluss02/NetSpecter
 issue_tracker: https://github.com/Tuanpluss02/NetSpecter/issues
-documentation: https://pub.dev/documentation/netspecter/latest/
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
   flutter: ">=3.10.0"
 
 dependencies:
-  dio: ^5.0.0
+  dio: ^5.4.0
   http: ^1.0.0
-  sensors_plus: ^4.0.0
+  sensors_plus: ^7.0.0
   flutter:
     sdk: flutter
   path_provider: ^2.1.5
-  chopper: ^7.0.0
-  share_plus: ^7.0.0
+  chopper: ^8.0.0
+  share_plus: ^12.0.1
 
 dev_dependencies:
   flutter_test:

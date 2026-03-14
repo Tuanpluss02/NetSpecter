@@ -21,9 +21,9 @@
     },
     {
       "name": "chopper",
-      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/chopper-7.4.0",
+      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/chopper-8.5.0",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.9"
     },
     {
       "name": "clock",
@@ -243,25 +243,25 @@
     },
     {
       "name": "sensors_plus",
-      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/sensors_plus-4.0.2",
+      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/sensors_plus-7.0.0",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.3"
     },
     {
       "name": "sensors_plus_platform_interface",
-      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/sensors_plus_platform_interface-1.2.0",
+      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/sensors_plus_platform_interface-2.0.1",
       "packageUri": "lib/",
       "languageVersion": "2.18"
     },
     {
       "name": "share_plus",
-      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/share_plus-7.2.2",
+      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/share_plus-12.0.1",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.4"
     },
     {
       "name": "share_plus_platform_interface",
-      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/share_plus_platform_interface-3.4.0",
+      "rootUri": "file:///Users/tuanpluss02/.pub-cache/hosted/pub.dev/share_plus_platform_interface-6.1.0",
       "packageUri": "lib/",
       "languageVersion": "2.18"
     },
