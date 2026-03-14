@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
 import 'package:netspecter/src/ui/widgets/json_viewer.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../export/curl_generator.dart';
+import '../../export/har_exporter.dart';
 import '../../model/index_entry.dart';
 import '../../model/request_record.dart';
 import '../../storage/inspector_session.dart';
@@ -27,6 +32,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   late Future<RequestRecord> _recordFuture;
+  final GlobalKey _fabKey = GlobalKey();
 
   String _query = '';
   int _currentMatchIndex = 0;
@@ -206,174 +212,180 @@ class _RequestDetailPageState extends State<RequestDetailPage>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Detail Search Bar
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
-                ),
-                decoration: BoxDecoration(
-                  color: NetSpecterTheme.surface,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.05),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: NetSpecterTheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (value) {
-                          setState(() {
-                            _query = value.trim();
-                            _currentMatchIndex = 0;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Search in details...',
-                          hintStyle: const TextStyle(
-                            color: NetSpecterTheme.textMuted,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            color: NetSpecterTheme.textMuted,
-                            size: 20,
-                          ),
-                          filled: true,
-                          fillColor: NetSpecterTheme.surfaceContainer,
-                          isDense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide: const BorderSide(
-                              color: NetSpecterTheme.indigo500,
-                              width: 1.0,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            setState(() {
+                              _query = value.trim();
+                              _currentMatchIndex = 0;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search in details...',
+                            hintStyle: const TextStyle(
+                              color: NetSpecterTheme.textMuted,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: NetSpecterTheme.textMuted,
+                              size: 20,
+                            ),
+                            filled: true,
+                            fillColor: NetSpecterTheme.surfaceContainer,
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 12.0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                              borderSide: const BorderSide(
+                                color: NetSpecterTheme.indigo500,
+                                width: 1.0,
+                              ),
                             ),
                           ),
+                          style: const TextStyle(
+                            color: NetSpecterTheme.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        totalMatches == 0
+                            ? '0 / 0'
+                            : '${effectiveIndex + 1} / $totalMatches',
                         style: const TextStyle(
-                          color: NetSpecterTheme.textSecondary,
-                          fontSize: 14,
+                          fontSize: 12,
+                          color: NetSpecterTheme.textMuted,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      totalMatches == 0
-                          ? '0 / 0'
-                          : '${effectiveIndex + 1} / $totalMatches',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: NetSpecterTheme.textMuted,
+                      IconButton(
+                        icon: const Icon(
+                          Icons.keyboard_arrow_up,
+                          size: 20,
+                          color: NetSpecterTheme.textMuted,
+                        ),
+                        tooltip: 'Previous match',
+                        onPressed: totalMatches == 0
+                            ? null
+                            : () {
+                                setState(() {
+                                  _currentMatchIndex--;
+                                });
+                              },
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.keyboard_arrow_up,
-                        size: 20,
-                        color: NetSpecterTheme.textMuted,
+                      IconButton(
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: NetSpecterTheme.textMuted,
+                        ),
+                        tooltip: 'Next match',
+                        onPressed: totalMatches == 0
+                            ? null
+                            : () {
+                                setState(() {
+                                  _currentMatchIndex++;
+                                });
+                              },
                       ),
-                      tooltip: 'Previous match',
-                      onPressed: totalMatches == 0
-                          ? null
-                          : () {
-                              setState(() {
-                                _currentMatchIndex--;
-                              });
-                            },
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 20,
-                        color: NetSpecterTheme.textMuted,
-                      ),
-                      tooltip: 'Next match',
-                      onPressed: totalMatches == 0
-                          ? null
-                          : () {
-                              setState(() {
-                                _currentMatchIndex++;
-                              });
-                            },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // TabBar
-              TabBar(
-                controller: _tabController,
-                indicatorColor: NetSpecterTheme.indigo500,
-                labelColor: NetSpecterTheme.indigo400,
-                unselectedLabelColor: NetSpecterTheme.textQuaternary,
-                dividerColor: Colors.transparent,
-                tabs: isWs
-                    ? const [
-                        Tab(text: 'Overview'),
-                        Tab(text: 'Messages'),
-                      ]
-                    : const [
-                        Tab(text: 'Overview'),
-                        Tab(text: 'Request'),
-                        Tab(text: 'Response'),
-                        Tab(text: 'Messages'),
-                      ],
-              ),
-              Expanded(
-                child: AnimatedBuilder(
-                  animation: _tabController,
-                  builder: (context, _) {
-                    final tabIndex = _tabController.index;
-                    return IndexedStack(
-                      index: tabIndex,
-                      children: isWs
-                          ? [
-                              _visitedTabs.contains(0)
-                                  ? _buildOverviewTab(
-                                      record, matches, activeGlobalIndex)
-                                  : const SizedBox.shrink(),
-                              _visitedTabs.contains(1)
-                                  ? _buildMessagesTab(record)
-                                  : const SizedBox.shrink(),
-                            ]
-                          : [
-                              _visitedTabs.contains(0)
-                                  ? _buildOverviewTab(
-                                      record, matches, activeGlobalIndex)
-                                  : const SizedBox.shrink(),
-                              _visitedTabs.contains(1)
-                                  ? _buildRequestTab(
-                                      record, matches, activeGlobalIndex)
-                                  : const SizedBox.shrink(),
-                              _visitedTabs.contains(2)
-                                  ? _buildResponseTab(
-                                      record, matches, activeGlobalIndex)
-                                  : const SizedBox.shrink(),
-                              _visitedTabs.contains(3)
-                                  ? _buildErrorTab(
-                                      record, matches, activeGlobalIndex)
-                                  : const SizedBox.shrink(),
-                            ],
-                    );
-                  },
+                // TabBar
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: NetSpecterTheme.indigo500,
+                  labelColor: NetSpecterTheme.indigo400,
+                  unselectedLabelColor: NetSpecterTheme.textQuaternary,
+                  dividerColor: Colors.transparent,
+                  tabs: isWs
+                      ? const [
+                          Tab(text: 'Overview'),
+                          Tab(text: 'Messages'),
+                        ]
+                      : const [
+                          Tab(text: 'Overview'),
+                          Tab(text: 'Request'),
+                          Tab(text: 'Response'),
+                          Tab(text: 'Messages'),
+                        ],
                 ),
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: _tabController,
+                    builder: (context, _) {
+                      final tabIndex = _tabController.index;
+                      return IndexedStack(
+                        index: tabIndex,
+                        children: isWs
+                            ? [
+                                _visitedTabs.contains(0)
+                                    ? _buildOverviewTab(
+                                        record, matches, activeGlobalIndex)
+                                    : const SizedBox.shrink(),
+                                _visitedTabs.contains(1)
+                                    ? _buildMessagesTab(record)
+                                    : const SizedBox.shrink(),
+                              ]
+                            : [
+                                _visitedTabs.contains(0)
+                                    ? _buildOverviewTab(
+                                        record, matches, activeGlobalIndex)
+                                    : const SizedBox.shrink(),
+                                _visitedTabs.contains(1)
+                                    ? _buildRequestTab(
+                                        record, matches, activeGlobalIndex)
+                                    : const SizedBox.shrink(),
+                                _visitedTabs.contains(2)
+                                    ? _buildResponseTab(
+                                        record, matches, activeGlobalIndex)
+                                    : const SizedBox.shrink(),
+                                _visitedTabs.contains(3)
+                                    ? _buildErrorTab(
+                                        record, matches, activeGlobalIndex)
+                                    : const SizedBox.shrink(),
+                              ],
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        key: _fabKey,
+        heroTag: null,
+        onPressed: _showShareMenu,
+        backgroundColor: NetSpecterTheme.indigo500,
+        child: const Icon(Icons.share),
+      ),
     );
   }
-
 
   Widget _buildOverviewTab(RequestRecord record, List<_DetailMatch> matches,
       int? activeGlobalIndex) {
@@ -739,6 +751,142 @@ class _RequestDetailPageState extends State<RequestDetailPage>
       ),
     );
   }
+
+  void _showShareMenu() {
+    final record = _cachedRecord;
+    if (record == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: NetSpecterTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy, color: NetSpecterTheme.indigo500),
+              title: const Text('Copy cURL'),
+              subtitle: const Text('Copy request as cURL command',
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              onTap: () {
+                Navigator.pop(context);
+                _copyCurlCommand(record);
+              },
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            ListTile(
+              leading:
+                  const Icon(Icons.download, color: NetSpecterTheme.indigo500),
+              title: const Text('Export HAR'),
+              subtitle: const Text('Download HAR file',
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              onTap: () {
+                Navigator.pop(context);
+                _exportHarFile(record);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _copyCurlCommand(RequestRecord record) {
+    try {
+      final curl = CurlGenerator.fromRecord(record);
+      _getSharePositionOrigin().then((origin) {
+        Share.share(
+          curl,
+          subject: 'cURL Command',
+          sharePositionOrigin: origin,
+        );
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _exportHarFile(RequestRecord record) async {
+    try {
+      final harData = HarExporter.fromRecords([record]);
+      final harJson = jsonEncode(harData);
+
+      // Save to temp directory (system will auto-clean)
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'request_${record.method}_${DateTime.now().millisecondsSinceEpoch}.har';
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsString(harJson);
+
+      // Share file using system share UI
+      if (mounted) {
+        final origin = await _getSharePositionOrigin();
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'HAR Export',
+          text: 'Network request HAR export',
+          sharePositionOrigin: origin,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting HAR: $e'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<Rect> _getSharePositionOrigin() async {
+    try {
+      final box = _fabKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null) {
+        final offset = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        return Rect.fromLTWH(
+          offset.dx,
+          offset.dy,
+          size.width,
+          size.height,
+        );
+      }
+    } catch (e) {
+      // Ignore, will use default
+    }
+    // Fallback: center of screen
+    return Rect.fromCenter(
+      center: Offset(MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2),
+      width: 1,
+      height: 1,
+    );
+  }
 }
 
 class _DetailMatch {
@@ -866,4 +1014,3 @@ List<_DetailMatch> _computeMatches(
 
   return matches;
 }
-
