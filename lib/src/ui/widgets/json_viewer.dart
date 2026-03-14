@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:netspecter/src/ui/netspecter_theme.dart';
 
+import 'toast_notification.dart';
+
 class JsonViewer extends StatefulWidget {
   final dynamic data;
   final String? searchQuery;
@@ -46,7 +48,6 @@ class JsonViewer extends StatefulWidget {
     if (data is bool) return _countIn(data.toString(), q);
     if (data is num) return _countIn(data.toString(), q);
     if (data is String) {
-      // Count in both key-display form (with quotes) and raw value
       return _countIn(data, q);
     }
     if (data is List) {
@@ -98,13 +99,7 @@ class _JsonViewerState extends State<JsonViewer> {
     final formatted = JsonViewer.formatData(widget.data);
     Clipboard.setData(ClipboardData(text: formatted)).then((_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Copied to clipboard'),
-            duration: Duration(seconds: 1),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ToastNotification.show(context, 'Copied to clipboard');
       }
     });
   }
