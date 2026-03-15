@@ -52,8 +52,8 @@ class ReplayHandler {
             ),
             const Divider(color: Colors.white12, height: 1),
             ListTile(
-              leading:
-                  const Icon(Icons.edit_note, color: InterceptlyTheme.indigo500),
+              leading: const Icon(Icons.edit_note,
+                  color: InterceptlyTheme.indigo500),
               title: const Text('Duplicate & Edit'),
               subtitle: const Text('Modify request then send as new',
                   maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -471,8 +471,7 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                       labelText: 'URL',
                       labelStyle: TextStyle(color: InterceptlyTheme.textMuted),
                     ),
-                    style:
-                        const TextStyle(color: InterceptlyTheme.textPrimary),
+                    style: const TextStyle(color: InterceptlyTheme.textPrimary),
                   ),
                 ),
               ],

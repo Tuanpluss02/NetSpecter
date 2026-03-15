@@ -143,8 +143,8 @@ class _InterceptlyOverlayState extends State<InterceptlyOverlay> {
     }
 
     if (triggers.contains(InspectorTrigger.floatingButton)) {
-      final fabChild =
-          widget.config.fabChild ?? const Icon(Icons.bug_report, size: 20, color: Colors.white);
+      final fabChild = widget.config.fabChild ??
+          const Icon(Icons.bug_report, size: 20, color: Colors.white);
 
       content = Stack(
         children: <Widget>[
@@ -188,7 +188,8 @@ class _InterceptlyOverlayState extends State<InterceptlyOverlay> {
 GlobalKey<NavigatorState>? _registeredNavigatorKey;
 
 /// Read-only access for [Interceptly.showInspector].
-GlobalKey<NavigatorState>? get registeredNavigatorKey => _registeredNavigatorKey;
+GlobalKey<NavigatorState>? get registeredNavigatorKey =>
+    _registeredNavigatorKey;
 
 /// True while the inspector screen is on the navigation stack.
 ///
@@ -209,7 +210,9 @@ void openInspectorIfNotOpen({
 
   final navigator = nav ??
       _registeredNavigatorKey?.currentState ??
-      (context != null ? Navigator.maybeOf(context, rootNavigator: true) : null);
+      (context != null
+          ? Navigator.maybeOf(context, rootNavigator: true)
+          : null);
   if (navigator == null) return;
 
   _inspectorIsOpen = true;

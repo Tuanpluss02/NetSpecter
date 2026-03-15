@@ -30,4 +30,3 @@ class InterceptlySettings {
   /// Whether to decode URL encodings in the UI.
   final bool urlDecodeEnabled;
 }
-

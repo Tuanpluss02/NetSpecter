@@ -107,11 +107,11 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
               children: [
                 _buildSectionTitle('1. UI & Behavior'),
                 _buildSectionCard([
-                    _SettingsTile(
+                  _SettingsTile(
                     icon: Icons.link,
                     title: 'URL Decoding',
                     subtitle: 'Decode URL endpoints in list & detail',
-                      trailing: _CustomSwitch(
+                    trailing: _CustomSwitch(
                       value: _urlDecodeEnabled,
                       activeColor: InterceptlyTheme.indigo500,
                       onChanged: (val) {
