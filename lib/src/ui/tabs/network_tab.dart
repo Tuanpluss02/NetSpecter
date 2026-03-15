@@ -29,9 +29,9 @@ class NetworkTab extends StatelessWidget {
               },
               decoration: InputDecoration(
                 hintText: 'Search URL, headers, body…',
-                hintStyle: const TextStyle(
+                hintStyle:
+                    InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                   color: InterceptlyTheme.textMuted,
-                  fontSize: 14,
                 ),
                 prefixIcon: const Icon(
                   Icons.search,
@@ -54,14 +54,16 @@ class NetworkTab extends StatelessWidget {
                   ),
                 ),
               ),
-              style: const TextStyle(
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                 color: InterceptlyTheme.textSecondary,
-                fontSize: 14,
               ),
             ),
           ),
 
-          Divider(height: 1, color: Colors.white.withValues(alpha: 0.05)),
+          Divider(
+            height: 1,
+            color: InterceptlyGlobalColor.white.withValues(alpha: 0.05),
+          ),
 
           // Request List
           Expanded(
@@ -71,10 +73,11 @@ class NetworkTab extends StatelessWidget {
                 final entries = session.entries;
 
                 if (entries.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       'No network requests yet.',
-                      style: TextStyle(color: InterceptlyTheme.textMuted),
+                      style: InterceptlyTheme.typography.bodyMediumRegular
+                          .copyWith(color: InterceptlyTheme.textMuted),
                     ),
                   );
                 }
@@ -83,7 +86,7 @@ class NetworkTab extends StatelessWidget {
                   itemCount: entries.length,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: InterceptlyGlobalColor.white.withValues(alpha: 0.05),
                   ),
                   itemBuilder: (context, index) {
                     final req = entries[index];
@@ -164,12 +167,15 @@ class _RequestLogItem extends StatelessWidget {
     final mStyle = InterceptlyTheme.getMethodStyle(method);
     final isErrorWithoutStatus = status == 0 && hasError;
     final sStyle = isErrorWithoutStatus
-        ? const StatusStyle(bg: InterceptlyTheme.red500, text: Colors.white)
+        ? const StatusStyle(
+            bg: InterceptlyTheme.red500,
+            text: InterceptlyGlobalColor.white,
+          )
         : InterceptlyTheme.getStatusStyle(status);
 
     return InkWell(
       onTap: onTap,
-      hoverColor: Colors.white.withValues(alpha: 0.05),
+      hoverColor: InterceptlyGlobalColor.white.withValues(alpha: 0.05),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
@@ -186,9 +192,7 @@ class _RequestLogItem extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 method,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                style: InterceptlyTheme.typography.labelSmallMedium.copyWith(
                   color: mStyle.text,
                   letterSpacing: 0.5,
                 ),
@@ -202,11 +206,9 @@ class _RequestLogItem extends StatelessWidget {
                 children: [
                   Text(
                     url,
-                    style: const TextStyle(
-                      fontFamily: InterceptlyTheme.fontFamily,
-                      package: InterceptlyTheme.fontPackage,
+                    style:
+                        InterceptlyTheme.typography.bodyMediumMedium.copyWith(
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
                       color: InterceptlyTheme.textSecondary,
                     ),
                     maxLines: 2,
@@ -215,7 +217,8 @@ class _RequestLogItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$time • $duration',
-                    style: const TextStyle(
+                    style:
+                        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       fontSize: 11,
                       color: InterceptlyTheme.textMuted,
                     ),
@@ -244,9 +247,9 @@ class _RequestLogItem extends StatelessWidget {
                     )
                   : Text(
                       isErrorWithoutStatus ? 'ERR' : status.toString(),
-                      style: TextStyle(
+                      style:
+                          InterceptlyTheme.typography.bodyMediumBold.copyWith(
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
                         color: sStyle.text,
                       ),
                     ),

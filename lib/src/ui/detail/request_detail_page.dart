@@ -169,7 +169,10 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     final isPending = entry.statusCode == 0 && !entry.hasError;
     final isErrorWithoutStatus = entry.statusCode == 0 && entry.hasError;
     final sStyle = isErrorWithoutStatus
-        ? const StatusStyle(bg: InterceptlyTheme.red500, text: Colors.white)
+        ? const StatusStyle(
+            bg: InterceptlyTheme.red500,
+            text: InterceptlyGlobalColor.white,
+          )
         : InterceptlyTheme.getStatusStyle(entry.statusCode);
 
     String displayUrl = entry.url;
@@ -194,9 +197,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
         ),
         title: Text(
           path,
-          style: const TextStyle(
-            fontFamily: InterceptlyTheme.fontFamily,
-            package: InterceptlyTheme.fontPackage,
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
             fontSize: 14,
             color: InterceptlyTheme.textPrimary,
           ),
@@ -229,9 +230,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                     isErrorWithoutStatus
                         ? 'ERR'
                         : '${entry.statusCode} ${entry.statusCode == 200 ? 'OK' : ''}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                    style:
+                        InterceptlyTheme.typography.labelSmallMedium.copyWith(
                       color: sStyle.text,
                     ),
                   ),
@@ -293,7 +293,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                   color: InterceptlyTheme.surface,
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color:
+                          InterceptlyGlobalColor.white.withValues(alpha: 0.05),
                     ),
                   ),
                 ),
@@ -311,10 +312,9 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                         },
                         decoration: InputDecoration(
                           hintText: 'Search in details...',
-                          hintStyle: const TextStyle(
-                            color: InterceptlyTheme.textMuted,
-                            fontSize: 14,
-                          ),
+                          hintStyle: InterceptlyTheme
+                              .typography.bodyMediumRegular
+                              .copyWith(color: InterceptlyTheme.textMuted),
                           prefixIcon: const Icon(
                             Icons.search,
                             color: InterceptlyTheme.textMuted,
@@ -337,10 +337,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                             ),
                           ),
                         ),
-                        style: const TextStyle(
-                          color: InterceptlyTheme.textSecondary,
-                          fontSize: 14,
-                        ),
+                        style: InterceptlyTheme.typography.bodyMediumRegular
+                            .copyWith(color: InterceptlyTheme.textSecondary),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -348,7 +346,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                       totalMatches == 0
                           ? '0 / 0'
                           : '${effectiveIndex + 1} / $totalMatches',
-                      style: const TextStyle(
+                      style: InterceptlyTheme.typography.bodyMediumRegular
+                          .copyWith(
                         fontSize: 12,
                         color: InterceptlyTheme.textMuted,
                       ),
@@ -392,7 +391,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                 indicatorColor: InterceptlyTheme.indigo500,
                 labelColor: InterceptlyTheme.indigo400,
                 unselectedLabelColor: InterceptlyTheme.textQuaternary,
-                dividerColor: Colors.transparent,
+                dividerColor: InterceptlyGlobalColor.transparent,
                 tabs: isWs
                     ? const [
                         Tab(text: 'Overview'),

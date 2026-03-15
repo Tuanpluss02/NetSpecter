@@ -35,7 +35,7 @@ class ReplayHandler {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: InterceptlyGlobalColor.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -50,7 +50,7 @@ class ReplayHandler {
                 retry(record);
               },
             ),
-            const Divider(color: Colors.white12, height: 1),
+            const Divider(color: InterceptlyGlobalColor.black12, height: 1),
             ListTile(
               leading: const Icon(Icons.edit_note,
                   color: InterceptlyTheme.indigo500),
@@ -430,11 +430,10 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Request Editor',
-              style: TextStyle(
+              style: InterceptlyTheme.typography.bodyMediumBold.copyWith(
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
                 color: InterceptlyTheme.textPrimary,
               ),
             ),
@@ -467,11 +466,13 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                 Expanded(
                   child: TextField(
                     controller: _baseUrlController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'URL',
-                      labelStyle: TextStyle(color: InterceptlyTheme.textMuted),
+                      labelStyle: InterceptlyTheme.typography.bodyMediumRegular
+                          .copyWith(color: InterceptlyTheme.textMuted),
                     ),
-                    style: const TextStyle(color: InterceptlyTheme.textPrimary),
+                    style: InterceptlyTheme.typography.bodyMediumRegular
+                        .copyWith(color: InterceptlyTheme.textPrimary),
                   ),
                 ),
               ],
@@ -481,7 +482,9 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
               decoration: BoxDecoration(
                 color: InterceptlyTheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(
+                  color: InterceptlyGlobalColor.white.withValues(alpha: 0.05),
+                ),
               ),
               child: TabBar(
                 controller: _tabController,
@@ -512,12 +515,12 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'raw (JSON object)',
-                            style: TextStyle(
-                              color: InterceptlyTheme.textMuted,
+                            style: InterceptlyTheme.typography.bodyMediumRegular
+                                .copyWith(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              color: InterceptlyTheme.textMuted,
                             ),
                           ),
                           TextButton.icon(
@@ -537,10 +540,9 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                             hintText: '{\n  "Authorization": "Bearer ..."\n}',
                             alignLabelWithHint: true,
                           ),
-                          style: const TextStyle(
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(
                             color: InterceptlyTheme.textPrimary,
-                            fontFamily: InterceptlyTheme.fontFamily,
-                            package: InterceptlyTheme.fontPackage,
                           ),
                         ),
                       ),
@@ -550,7 +552,8 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                           'Invalid Headers JSON: $headersJsonError',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(
                             color: InterceptlyTheme.yellow400,
                             fontSize: 11,
                           ),
@@ -564,12 +567,12 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'raw (JSON)',
-                            style: TextStyle(
-                              color: InterceptlyTheme.textMuted,
+                            style: InterceptlyTheme.typography.bodyMediumRegular
+                                .copyWith(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              color: InterceptlyTheme.textMuted,
                             ),
                           ),
                           TextButton.icon(
@@ -589,10 +592,9 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                             hintText: '{\n  "key": "value"\n}',
                             alignLabelWithHint: true,
                           ),
-                          style: const TextStyle(
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(
                             color: InterceptlyTheme.textPrimary,
-                            fontFamily: InterceptlyTheme.fontFamily,
-                            package: InterceptlyTheme.fontPackage,
                           ),
                         ),
                       ),
@@ -602,7 +604,8 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
                           'Invalid JSON: $jsonError',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(
                             color: InterceptlyTheme.yellow400,
                             fontSize: 11,
                           ),
@@ -667,13 +670,11 @@ class _ReplayEditorSheetState extends State<_ReplayEditorSheet>
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: InterceptlyTheme.textMuted),
+        labelStyle: InterceptlyTheme.typography.bodyMediumRegular
+            .copyWith(color: InterceptlyTheme.textMuted),
       ),
-      style: const TextStyle(
-        color: InterceptlyTheme.textPrimary,
-        fontFamily: InterceptlyTheme.fontFamily,
-        package: InterceptlyTheme.fontPackage,
-      ),
+      style: InterceptlyTheme.typography.bodyMediumRegular
+          .copyWith(color: InterceptlyTheme.textPrimary),
     );
   }
 }
@@ -695,11 +696,11 @@ class _ReplayDraft {
 class _JsonSyntaxController extends TextEditingController {
   _JsonSyntaxController({super.text});
 
-  static const Color _keyColor = Color(0xFF7CC5FF);
-  static const Color _stringColor = Color(0xFFF78C6C);
-  static const Color _numberColor = Color(0xFFC3E88D);
-  static const Color _boolNullColor = Color(0xFFFFCB6B);
-  static const Color _punctuationColor = Color(0xFF89DDFF);
+  static const Color _keyColor = InterceptlyGlobalColor.blue400;
+  static const Color _stringColor = InterceptlyGlobalColor.red400;
+  static const Color _numberColor = InterceptlyGlobalColor.green400;
+  static const Color _boolNullColor = InterceptlyGlobalColor.yellow400;
+  static const Color _punctuationColor = InterceptlyGlobalColor.blue400;
 
   static final RegExp _tokenRegex = RegExp(
     r'"(?:\\.|[^"\\])*"|\btrue\b|\bfalse\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[{}\[\]:,]',
@@ -712,9 +713,8 @@ class _JsonSyntaxController extends TextEditingController {
     required bool withComposing,
   }) {
     final baseStyle = style ??
-        const TextStyle(
+        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
           color: InterceptlyTheme.textPrimary,
-          fontFamily: InterceptlyTheme.fontFamily,
           fontSize: 13,
         );
 

@@ -36,7 +36,7 @@ class ShareHandler {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: InterceptlyGlobalColor.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -51,7 +51,7 @@ class ShareHandler {
                 shareCurlCommand(record);
               },
             ),
-            const Divider(color: Colors.white12, height: 1),
+            const Divider(color: InterceptlyGlobalColor.black12, height: 1),
             ListTile(
               leading:
                   const Icon(Icons.download, color: InterceptlyTheme.indigo500),

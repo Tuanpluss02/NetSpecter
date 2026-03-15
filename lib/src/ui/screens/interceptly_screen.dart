@@ -33,33 +33,46 @@ class _InterceptlyScreenState extends State<InterceptlyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: InterceptlyTheme.darkTheme,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Interceptly'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _clearLogs,
-              tooltip: 'Clear logs',
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: _showSettings,
-              tooltip: 'Settings',
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1.0),
-            child: Container(
-              color: Colors.white.withValues(alpha: 0.05),
-              height: 1.0,
-            ),
+    return AnimatedBuilder(
+      animation: widget.session,
+      builder: (context, _) {
+        InterceptlyTheme.bind(
+          context: context,
+          themeMode: widget.session.themeMode,
+        );
+
+        return Theme(
+          data: InterceptlyTheme.themeData(
+            context: context,
+            themeMode: widget.session.themeMode,
           ),
-        ),
-        body: NetworkTab(session: widget.session),
-      ),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Interceptly'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _clearLogs,
+                  tooltip: 'Clear logs',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: _showSettings,
+                  tooltip: 'Settings',
+                ),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1.0),
+                child: Container(
+                  color: InterceptlyGlobalColor.white.withValues(alpha: 0.05),
+                  height: 1.0,
+                ),
+              ),
+            ),
+            body: NetworkTab(session: widget.session),
+          ),
+        );
+      },
     );
   }
 }
