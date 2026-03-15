@@ -133,17 +133,23 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     trailing: DropdownButtonHideUnderline(
                       child: DropdownButton<ThemeMode>(
                         dropdownColor: _colors.surfaceSecondary,
+                        style: _typography.bodyMediumRegular.copyWith(
+                          color: _colors.textPrimary,
+                          fontSize: 12,
+                        ),
+                        iconEnabledColor: _colors.textSecondary,
+                        iconDisabledColor: _colors.textTertiary,
                         value: _themeMode,
-                        items: const [
-                          DropdownMenuItem(
+                        items: [
+                          const DropdownMenuItem(
                             value: ThemeMode.system,
                             child: Text('System'),
                           ),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                             value: ThemeMode.light,
                             child: Text('Light'),
                           ),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                             value: ThemeMode.dark,
                             child: Text('Dark'),
                           ),
@@ -181,6 +187,12 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                     trailing: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         dropdownColor: _colors.surfaceSecondary,
+                        style: _typography.bodyMediumRegular.copyWith(
+                          color: _colors.textPrimary,
+                          fontSize: 12,
+                        ),
+                        iconEnabledColor: _colors.textSecondary,
+                        iconDisabledColor: _colors.textTertiary,
                         value: _selectedPresetName,
                         items: [
                           ..._presetProfiles,
