@@ -1,5 +1,7 @@
 ## 1.0.1
 
+- Added light/dark theme toggle support for better accessibility and user preference.
+- Improved replay request UI with enhanced form layout and better input handling.
 - Improved documentation and README structure.
 - Updated publisher information.
 
