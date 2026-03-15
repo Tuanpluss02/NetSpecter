@@ -1,23 +1,29 @@
 # Interceptly
 
-Interceptly is a Flutter network inspector for `dio`, `http`, and `chopper`.
+[![pub package](https://img.shields.io/pub/v/interceptly.svg)](https://pub.dev/packages/interceptly)
+[![pub points](https://img.shields.io/pub/points/interceptly.svg)](https://pub.dev/packages/interceptly)
+[![license](https://img.shields.io/github/license/Tuanpluss02/interceptly.svg)](https://github.com/Tuanpluss02/interceptly/blob/main/LICENSE)
 
-- Session-only storage (memory + temp file)
-- Handles large payloads without blocking UI
-- Built-in inspector overlay + replay tools
+Interceptly is a high-performance network inspector for Flutter. It provides real-time traffic visualization for Dio, Http, and Chopper with minimal impact on UI performance.
 
-Current package version in this repository: `1.0.0`
+[Features](#features) | [Installation](#install) | [Quick Start](#quick-start-dio) | [Integrations](#integrations) | [Network Simulation](#network-simulation)
 
 ---
 
-## Requirements
+## Features
 
-- Dart: `>=3.5.0 <4.0.0`
-- Flutter: `>=3.10.0`
+- **High Performance**: Background isolates handle all serialization logic to prevent UI jank.
+- **Hybrid Storage**: Smart memory management that offloads large payloads to temporary files.
+- **Postman-like Replay**: Built-in request editor to modify headers/body and re-send requests.
+- **Network Simulation**: Global profiles for Offline, 3G, 4G, or custom latency/bandwidth.
+- **Advanced Formatters**: Specialized views for GraphQL, Multipart, cURL, and Binary data.
+- **Flexible Triggers**: Support for Shake, Long Press, Floating Button, or Custom Streams.
 
 ---
 
 ## Install
+
+Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -26,7 +32,7 @@ dependencies:
 
 ---
 
-## Quick start (Dio)
+## Quick Start (Dio)
 
 ```dart
 import 'package:dio/dio.dart';
@@ -34,11 +40,13 @@ import 'package:flutter/material.dart';
 import 'package:interceptly/interceptly.dart';
 
 void main() {
+  // 1. Initialize interceptor
   final dio = Dio()..interceptors.add(Interceptly.dioInterceptor);
 
   runApp(
     MaterialApp(
       home: InterceptlyOverlay(
+        // 2. Wrap your application
         child: MyApp(dio: dio),
       ),
     ),
@@ -51,206 +59,87 @@ void main() {
 ## Integrations
 
 ### Dio
-
 ```dart
 final dio = Dio()..interceptors.add(Interceptly.dioInterceptor);
-
-// Or explicit constructor
-// dio.interceptors.add(InterceptlyDioInterceptor());
 ```
 
-### HTTP (`package:http`)
-
+### HTTP (package:http)
 ```dart
 import 'package:http/http.dart' as http;
 
 final client = Interceptly.wrapHttpClient(http.Client());
-// or InterceptlyHttpClient(http.Client())
-
-final res = await client.get(Uri.parse('https://api.example.com/users'));
+final res = await client.get(Uri.parse('[https://api.example.com/data](https://api.example.com/data)'));
 ```
 
 ### Chopper
-
 ```dart
 import 'package:chopper/chopper.dart';
 
 final chopper = ChopperClient(
-  interceptors: [
-    InterceptlyChopperInterceptor(),
-  ],
-  // ... your converter/services
+  interceptors: [InterceptlyChopperInterceptor()],
 );
 ```
 
 ---
 
-## Open inspector
+## Network Simulation
+
+Simulate various network conditions globally for all intercepted requests:
 
 ```dart
-// Always works with context
-Interceptly.showInspector(context);
+// Apply built-in profiles
+Interceptly.instance.setNetworkSimulation(NetworkSimulationProfile.slow3G);
 
-// Works without context if navigatorKey was passed to InterceptlyOverlay
-Interceptly.showInspector();
+// Custom profile definition
+Interceptly.instance.setNetworkSimulation(
+  const NetworkSimulationProfile(
+    name: 'Custom Profile',
+    latencyMs: 500,
+    downloadKbps: 1000,
+    uploadKbps: 500,
+  ),
+);
+
+// Disable simulation
+Interceptly.instance.clearNetworkSimulation();
 ```
 
 ---
 
-## Overlay triggers
+## Configuration
 
-Configure triggers via `InterceptlyConfig`:
+### InterceptlySettings
 
+| Parameter | Default | Description |
+| :--- | :--- | :--- |
+| `bodyOffloadThreshold` | `50 * 1024` | Threshold (bytes) to move body to temp file |
+| `maxEntries` | `5000` | Maximum requests kept in history |
+| `maxBodyBytes` | `2 * 1024 * 1024` | Hard cap for body size before truncation |
+| `urlDecodeEnabled` | `true` | Initial state of URL decoding in UI |
+
+### UI Triggers
 ```dart
 InterceptlyOverlay(
   config: InterceptlyConfig(
     triggers: {
-      InspectorTrigger.floatingButton, // default
+      InspectorTrigger.floatingButton,
       InspectorTrigger.shake,
       InspectorTrigger.longPress,
     },
     shakeThreshold: 15.0,
-    shakeMinInterval: Duration(milliseconds: 1000),
-    longPressDuration: Duration(milliseconds: 800),
-    fabChild: Icon(Icons.network_check, color: Colors.white),
   ),
-  child: ...,
-)
-```
-
-You can also open via any custom stream:
-
-```dart
-InterceptlyOverlay(
-  customTrigger: myTriggerStream,
-  child: ...,
+  child: MyApp(),
 )
 ```
 
 ---
 
-## Features
+## Navigator Setup (MaterialApp.router)
 
-- Capture request lifecycle early (pending shown immediately, then updated on response/error)
-- Detail pages for request/response/error/message tabs
-- URL decode toggle in UI
-- Search inside details with match navigation
-- Export HAR and copy as cURL
-- Replay tools in detail screen:
-  - `Retry Request`
-  - `Duplicate & Edit` (Postman-like editor with `Params / Headers / Body`)
-- JSON editors in replay screen:
-  - Header JSON editor
-  - Body JSON editor
-  - JSON format + validation + syntax highlight
-- Better body rendering:
-  - `application/x-www-form-urlencoded` formatter
-  - `multipart/form-data` summary formatter
-  - GraphQL payload formatter
-  - Binary preview metadata (image/pdf/protobuf/msgpack fallback)
-  - Content-Encoding indicator (`gzip` / `br` decode status)
-
----
-
-## Network simulation (DevTools-like)
-
-Interceptly supports runtime network simulation profiles:
-
-- `No throttling`
-- `Offline`
-- `Slow 3G`
-- `Fast 3G`
-- `4G`
-- `Wi‑Fi`
-- `Custom` (latency/upload/download sliders in settings)
-
-Programmatic control:
+To use `Interceptly.showInspector()` without context in Router-based applications, pass the navigator key to the overlay:
 
 ```dart
-Interceptly.instance.setNetworkSimulation(NetworkSimulationProfile.slow3G);
-
-Interceptly.instance.setNetworkSimulation(
-  const NetworkSimulationProfile(
-    name: 'Custom',
-    offline: false,
-    latencyMs: 250,
-    downloadKbps: 1200,
-    uploadKbps: 600,
-  ),
-);
-
-Interceptly.instance.clearNetworkSimulation();
-```
-
-> Note: Simulation only applies to requests going through Interceptly wrappers/interceptors.
-
----
-
-## Capture control
-
-```dart
-Interceptly.instance.disable(); // stop recording
-Interceptly.instance.enable();  // resume
-```
-
----
-
-## Custom session
-
-```dart
-final session = InspectorSession(
-  settings: const InterceptlySettings(
-    bodyOffloadThreshold: 100 * 1024,
-    maxEntries: 1000,
-  ),
-);
-
-final dio = Dio()..interceptors.add(InterceptlyDioInterceptor(session));
-
-runApp(
-  MaterialApp(
-    home: InterceptlyOverlay(
-      session: session,
-      child: MyApp(dio: dio),
-    ),
-  ),
-);
-```
-
----
-
-## Storage model
-
-```text
-Body < bodyOffloadThreshold  -> kept inline in memory
-Body >= bodyOffloadThreshold -> offloaded to temp file (offset/length in RAM)
-List view                    -> reads memory index only
-Detail view                  -> lazy loads only selected record
-```
-
-Large-body serialization/writes are done via a background isolate.
-
----
-
-## InterceptlySettings
-
-| Parameter                | Default           | Description                           |
-| ------------------------ | ----------------- | ------------------------------------- |
-| `bodyOffloadThreshold`   | `50 * 1024`       | Body size threshold for file offload  |
-| `previewTruncationBytes` | `16 * 1024`       | Max bytes kept when body is truncated |
-| `maxBodyBytes`           | `2 * 1024 * 1024` | Hard cap before truncation            |
-| `maxQueuedEvents`        | `500`             | Max pending write queue events        |
-| `maxEntries`             | `5000`            | Max items kept in memory index        |
-| `urlDecodeEnabled`       | `true`            | Initial URL decode state in UI        |
-
----
-
-## Router / navigatorKey setup
-
-If you use `MaterialApp.router` / GoRouter, pass your app navigator key to the overlay so `Interceptly.showInspector()` can work without context.
-
-```dart
-final navigatorKey = GlobalKey<NavigatorState>();
+final navigatorKey = GlobalKey();
 
 MaterialApp.router(
   routerConfig: router,
@@ -265,8 +154,17 @@ MaterialApp.router(
 
 ---
 
-## Notes
+## Storage Model
 
-- The floating trigger button is draggable.
-- Session data is in-memory + temp file only (no DB).
-- For runnable integration examples, check the `example/` folder.
+- **Small Payloads**: Kept in memory for instant access.
+- **Large Payloads**: Written to temporary files via background isolates to keep memory footprint low.
+- **Lazy Loading**: Body data is only loaded from disk when a record is selected for inspection.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+Published by [stormx.dev](https://stormx.dev)
