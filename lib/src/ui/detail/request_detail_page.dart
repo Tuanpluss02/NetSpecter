@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:interceptly/src/ui/interceptly_theme.dart';
+import 'package:interceptly/src/ui/widgets/interceptly_text_field.dart';
 
 import '../../model/index_entry.dart';
 import '../../model/request_record.dart';
@@ -283,45 +284,24 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                     child: Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: InterceptlySearchField(
                             controller: _searchController,
+                            hintText: 'Search in details...',
                             textInputAction: TextInputAction.search,
+                            onChanged: (value) {
+                              if (value.trim().isEmpty && _query.isNotEmpty) {
+                                setState(() {
+                                  _query = '';
+                                  _currentMatchIndex = 0;
+                                });
+                              }
+                            },
                             onSubmitted: (value) {
                               setState(() {
                                 _query = value.trim();
                                 _currentMatchIndex = 0;
                               });
                             },
-                            decoration: InputDecoration(
-                              hintText: 'Search in details...',
-                              hintStyle: InterceptlyTheme
-                                  .typography.bodyMediumRegular
-                                  .copyWith(color: InterceptlyTheme.textMuted),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: InterceptlyTheme.textMuted,
-                                size: 20,
-                              ),
-                              filled: true,
-                              fillColor: InterceptlyTheme.surfaceContainer,
-                              isDense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12.0),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30.0),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30.0),
-                                borderSide: const BorderSide(
-                                  color: InterceptlyTheme.indigo500,
-                                  width: 1.0,
-                                ),
-                              ),
-                            ),
-                            style: InterceptlyTheme.typography.bodyMediumRegular
-                                .copyWith(
-                                    color: InterceptlyTheme.textSecondary),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -383,7 +363,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                             Tab(text: 'Overview'),
                             Tab(text: 'Request'),
                             Tab(text: 'Response'),
-                            Tab(text: 'Messages'),
+                            Tab(text: 'Error'),
                           ],
                   ),
                   Expanded(
@@ -432,12 +412,20 @@ class _RequestDetailPageState extends State<RequestDetailPage>
               );
             },
           ),
-          floatingActionButton: FloatingActionButton(
+          floatingActionButton: FloatingActionButton.extended(
             key: _fabKey,
             heroTag: null,
             onPressed: _showShareMenu,
             backgroundColor: InterceptlyTheme.indigo500,
-            child: const Icon(Icons.share),
+            foregroundColor: InterceptlyGlobalColor.white,
+            icon: const Icon(Icons.share, size: 18),
+            label: Text(
+              'Share',
+              style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
+                color: InterceptlyGlobalColor.white,
+                fontSize: 13,
+              ),
+            ),
           ),
         );
       },

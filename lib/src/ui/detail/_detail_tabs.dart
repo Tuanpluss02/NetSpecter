@@ -218,6 +218,16 @@ class DetailTabsBuilder {
   }
 
   Widget buildErrorTab() {
+    if (!record.hasError) {
+      return Center(
+        child: Text(
+          'No errors for this request.',
+          style: InterceptlyTheme.typography.bodyMediumRegular
+              .copyWith(color: InterceptlyTheme.textMuted),
+        ),
+      );
+    }
+
     final shortError = summarizeRequestError(
       errorType: record.errorType,
       errorMessage: record.errorMessage,

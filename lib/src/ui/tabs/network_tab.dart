@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:interceptly/src/ui/detail/request_detail_page.dart';
 import 'package:interceptly/src/ui/interceptly_theme.dart';
 import 'package:interceptly/src/ui/utils/error_summary.dart';
+import 'package:interceptly/src/ui/widgets/interceptly_text_field.dart';
 
 import '../../storage/inspector_session.dart';
 
@@ -18,7 +19,8 @@ class NetworkTab extends StatelessWidget {
           // Search & Filters
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
+            child: InterceptlySearchField(
+              hintText: 'Search URL, headers, body…',
               onChanged: (value) {
                 final q = value.trim();
                 if (q.isEmpty) {
@@ -27,36 +29,6 @@ class NetworkTab extends StatelessWidget {
                   session.startMasterSearch(q);
                 }
               },
-              decoration: InputDecoration(
-                hintText: 'Search URL, headers, body…',
-                hintStyle:
-                    InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                  color: InterceptlyTheme.textMuted,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: InterceptlyTheme.textMuted,
-                  size: 20,
-                ),
-                filled: true,
-                fillColor: InterceptlyTheme.surfaceContainer,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12.0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: const BorderSide(
-                    color: InterceptlyTheme.indigo500,
-                    width: 1.0,
-                  ),
-                ),
-              ),
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                color: InterceptlyTheme.textSecondary,
-              ),
             ),
           ),
 
@@ -185,8 +157,8 @@ class _RequestLogItem extends StatelessWidget {
               width: 48,
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               decoration: BoxDecoration(
-                color: mStyle.bg,
-                border: Border.all(color: mStyle.border),
+                color: mStyle.bg.withValues(alpha: 0.22),
+                border: Border.all(color: mStyle.border.withValues(alpha: 0.8)),
                 borderRadius: BorderRadius.circular(6.0),
               ),
               alignment: Alignment.center,
@@ -194,7 +166,8 @@ class _RequestLogItem extends StatelessWidget {
                 method,
                 style: InterceptlyTheme.typography.labelSmallMedium.copyWith(
                   color: mStyle.text,
-                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.7,
                 ),
               ),
             ),
