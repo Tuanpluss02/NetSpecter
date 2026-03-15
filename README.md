@@ -27,7 +27,7 @@ Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  interceptly: ^1.0.0
+  interceptly: ^1.0.1
 ```
 
 ---

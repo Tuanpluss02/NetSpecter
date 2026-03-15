@@ -1,3 +1,8 @@
+## 1.0.1
+
+- Improved documentation and README structure.
+- Updated publisher information.
+
 ## 1.0.0
 
 Initial release of Interceptly.
