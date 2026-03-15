@@ -19,4 +19,3 @@ export 'src/ui/settings/settings_bottom_sheet.dart';
 export 'src/ui/trigger/inspector_trigger.dart';
 export 'src/ui/trigger/interceptly_config.dart';
 export 'src/ui/widgets/json_viewer.dart';
-

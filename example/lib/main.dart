@@ -114,7 +114,8 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
                   ? null
                   : () => _runRequest(
                         'Error',
-                        () => widget.dio.get<dynamic>('https://httpstat.us/503'),
+                        () =>
+                            widget.dio.get<dynamic>('https://httpstat.us/503'),
                       ),
               child: const Text('Send Error Request'),
             ),
