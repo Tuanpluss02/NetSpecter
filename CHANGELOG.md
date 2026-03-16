@@ -1,3 +1,20 @@
+
+
+## 1.1.0
+
+### Added
+- Advanced filtering by HTTP methods, status codes, and domains.
+- Domain grouping to organize network logs.
+
+### Changed
+- Improved styling of the filter panel to match the application theme.
+- Improved custom request page form to maintain focus state.
+- Improved custom request action buttons styling.
+
+### Fixed
+- Custom request parameters and headers not applying when sending modified requests.
+- Filter list display mapping issue for domains.
+
 ## 1.0.2
 - Fix broken image links in README.
 
