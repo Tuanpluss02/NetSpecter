@@ -34,7 +34,7 @@ class RequestFilter {
 
   /// Check if an index entry matches all active filters.
   ///
-  /// Use this for list filtering to avoid constructing temporary [RequestRecord]
+  /// Use this for list filtering to avoid constructing temporary `RequestRecord`
   /// objects in hot UI paths.
   bool matchesIndexEntry(IndexEntry entry) {
     return _matchesValues(
