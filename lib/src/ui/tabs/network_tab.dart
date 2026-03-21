@@ -26,8 +26,28 @@ class NetworkTab extends StatefulWidget {
 }
 
 class _NetworkTabState extends State<NetworkTab> {
+  late TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: widget.session.masterQuery ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_searchController.text != (widget.session.masterQuery ?? '')) {
+      _searchController.text = widget.session.masterQuery ?? '';
+    }
+
     return Scaffold(
       body: Column(
         children: [
@@ -38,6 +58,7 @@ class _NetworkTabState extends State<NetworkTab> {
               children: [
                 Expanded(
                   child: InterceptlySearchField(
+                    controller: _searchController,
                     hintText: 'Search URL, headers, body…',
                     onChanged: (value) {
                       final q = value.trim();
