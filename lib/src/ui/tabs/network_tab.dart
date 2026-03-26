@@ -138,8 +138,8 @@ class _NetworkTabState extends State<NetworkTab> {
             if (_isSelectionMode)
               Container(
                 color: InterceptlyTheme.controlMuted,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                 child: Row(
                   children: [
                     IconButton(
@@ -157,9 +157,8 @@ class _NetworkTabState extends State<NetworkTab> {
                     Expanded(
                       child: Text(
                         '${_selectedIds.length} selected',
-                        style:
-                            InterceptlyTheme.typography.bodyMediumMedium
-                                .copyWith(color: colors.textPrimary),
+                        style: InterceptlyTheme.typography.bodyMediumMedium
+                            .copyWith(color: colors.textPrimary),
                       ),
                     ),
                   ],
@@ -251,14 +250,12 @@ class _NetworkTabState extends State<NetworkTab> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.actionPrimary,
                         foregroundColor: colors.textOnAction,
-                        disabledBackgroundColor:
-                            InterceptlyTheme.controlMuted,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        disabledBackgroundColor: InterceptlyTheme.controlMuted,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              InterceptlyTheme.radius.md),
+                          borderRadius:
+                              BorderRadius.circular(InterceptlyTheme.radius.md),
                         ),
                       ),
                     ),
@@ -332,11 +329,9 @@ class _NetworkTabState extends State<NetworkTab> {
       itemBuilder: (context, groupIndex) {
         final group = groups[groupIndex];
         final groupIds = group.requests.map((r) => r.id).toList();
-        final allGroupSelected =
-            groupIds.isNotEmpty &&
+        final allGroupSelected = groupIds.isNotEmpty &&
             groupIds.every((id) => _selectedIds.contains(id));
-        final someGroupSelected =
-            !allGroupSelected &&
+        final someGroupSelected = !allGroupSelected &&
             groupIds.any((id) => _selectedIds.contains(id));
 
         return Column(
@@ -351,8 +346,7 @@ class _NetworkTabState extends State<NetworkTab> {
               )
             else
               GestureDetector(
-                onTap: () =>
-                    widget.session.toggleDomainExpanded(group.domain),
+                onTap: () => widget.session.toggleDomainExpanded(group.domain),
                 child: DomainGroupHeader(
                   group: group,
                   onToggleExpand: () =>
@@ -387,9 +381,7 @@ class _NetworkTabState extends State<NetworkTab> {
                       )),
                     ),
                     if (!isLast)
-                      Divider(
-                          height: 1,
-                          color: InterceptlyTheme.dividerSubtle),
+                      Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
                   ],
                 );
               }),
@@ -447,8 +439,7 @@ class _NetworkTabState extends State<NetworkTab> {
                   : someSelected
                       ? colors.actionPrimary.withValues(alpha: 0.3)
                       : InterceptlyGlobalColor.transparent,
-              borderRadius:
-                  BorderRadius.circular(InterceptlyTheme.radius.sm),
+              borderRadius: BorderRadius.circular(InterceptlyTheme.radius.sm),
               border: Border.all(
                 color: allSelected || someSelected
                     ? colors.actionPrimary
@@ -457,17 +448,14 @@ class _NetworkTabState extends State<NetworkTab> {
               ),
             ),
             child: allSelected
-                ? Icon(Icons.check,
-                    size: 14, color: colors.textOnAction)
+                ? Icon(Icons.check, size: 14, color: colors.textOnAction)
                 : someSelected
-                    ? Icon(Icons.remove,
-                        size: 14, color: colors.textOnAction)
+                    ? Icon(Icons.remove, size: 14, color: colors.textOnAction)
                     : null,
           ),
         ),
         onTap: () => widget.session.toggleDomainExpanded(group.domain),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
@@ -529,7 +517,6 @@ class _NetworkTabState extends State<NetworkTab> {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-
 }
 
 // ── Request row widget ────────────────────────────────────────────────────────
@@ -578,11 +565,8 @@ class _RequestLogItem extends StatelessWidget {
       onLongPress: onLongPress,
       hoverColor: InterceptlyTheme.hoverOverlay,
       child: Container(
-        color: isSelected
-            ? colors.actionPrimary.withValues(alpha: 0.08)
-            : null,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        color: isSelected ? colors.actionPrimary.withValues(alpha: 0.08) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           children: [
             // ── Checkbox (selection mode only) ──────────────────────────────
@@ -601,16 +585,14 @@ class _RequestLogItem extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               decoration: BoxDecoration(
                 color: mStyle.bg.withValues(alpha: 0.22),
-                border:
-                    Border.all(color: mStyle.border.withValues(alpha: 0.8)),
+                border: Border.all(color: mStyle.border.withValues(alpha: 0.8)),
                 borderRadius:
                     BorderRadius.circular(InterceptlyTheme.radius.sm + 2),
               ),
               alignment: Alignment.center,
               child: Text(
                 method,
-                style:
-                    InterceptlyTheme.typography.labelSmallMedium.copyWith(
+                style: InterceptlyTheme.typography.labelSmallMedium.copyWith(
                   color: mStyle.text,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.7,
@@ -627,8 +609,8 @@ class _RequestLogItem extends StatelessWidget {
                 children: [
                   Text(
                     url,
-                    style: InterceptlyTheme.typography.bodyMediumMedium
-                        .copyWith(
+                    style:
+                        InterceptlyTheme.typography.bodyMediumMedium.copyWith(
                       fontSize: 13,
                       color: colors.textSecondary,
                     ),
@@ -638,8 +620,8 @@ class _RequestLogItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$time • $duration',
-                    style: InterceptlyTheme.typography.bodyMediumRegular
-                        .copyWith(
+                    style:
+                        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       fontSize: 11,
                       color: InterceptlyTheme.textMuted,
                     ),
@@ -652,8 +634,8 @@ class _RequestLogItem extends StatelessWidget {
 
             // ── Status badge ─────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
                 color: sStyle.bg,
                 borderRadius: BorderRadius.circular(12.0),
@@ -665,14 +647,13 @@ class _RequestLogItem extends StatelessWidget {
                       height: 12,
                       child: CircularProgressIndicator(
                         strokeWidth: 1.8,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(sStyle.text),
+                        valueColor: AlwaysStoppedAnimation<Color>(sStyle.text),
                       ),
                     )
                   : Text(
                       isErrorWithoutStatus ? 'ERR' : status.toString(),
-                      style: InterceptlyTheme.typography.bodyMediumBold
-                          .copyWith(
+                      style:
+                          InterceptlyTheme.typography.bodyMediumBold.copyWith(
                         fontSize: 11,
                         color: sStyle.text,
                       ),
@@ -707,18 +688,14 @@ class _SelectionCheckbox extends StatelessWidget {
         height: 22,
         decoration: BoxDecoration(
           color: isSelected ? actionColor : InterceptlyGlobalColor.transparent,
-          borderRadius:
-              BorderRadius.circular(InterceptlyTheme.radius.sm),
+          borderRadius: BorderRadius.circular(InterceptlyTheme.radius.sm),
           border: Border.all(
-            color: isSelected
-                ? actionColor
-                : InterceptlyTheme.controlMuted,
+            color: isSelected ? actionColor : InterceptlyTheme.controlMuted,
             width: 1.5,
           ),
         ),
         child: isSelected
-            ? Icon(Icons.check,
-                size: 14, color: InterceptlyGlobalColor.white)
+            ? Icon(Icons.check, size: 14, color: InterceptlyGlobalColor.white)
             : null,
       ),
     );

@@ -392,10 +392,10 @@ class _FilterPanelState extends State<FilterPanel> {
 
   void _applyFilters() {
     // All selected == no filter (empty set = show all).
-    final appliedMethods =
-        selectedMethods.containsAll(_allMethods) && selectedMethods.length == _allMethods.length
-            ? <String>{}
-            : selectedMethods;
+    final appliedMethods = selectedMethods.containsAll(_allMethods) &&
+            selectedMethods.length == _allMethods.length
+        ? <String>{}
+        : selectedMethods;
     final appliedDomains =
         selectedDomains.length == widget.availableDomains.length
             ? <String>{}

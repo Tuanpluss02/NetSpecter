@@ -13,7 +13,6 @@ import '../session/inspector_session.dart';
 import '../ui/overlay/interceptly_overlay.dart'
     show openInspectorIfNotOpen, registeredNavigatorKey;
 
-
 /// Thin public facade over [InspectorSession].
 ///
 /// Exposes a stable API surface for users who prefer `Interceptly.xxx` style

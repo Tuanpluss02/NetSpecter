@@ -53,5 +53,4 @@ class MemoryIndex {
   Future<void> dispose() async {
     await _controller.close();
   }
-
 }

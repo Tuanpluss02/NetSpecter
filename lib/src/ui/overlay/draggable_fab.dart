@@ -31,14 +31,12 @@ class _DraggableFabState extends State<DraggableFab>
 
   late final AnimationController _snapController;
   Animation<Offset>? _snapAnimation;
-  late final ValueNotifier<Offset> _positionVN =
-      ValueNotifier(Offset.zero);
+  late final ValueNotifier<Offset> _positionVN = ValueNotifier(Offset.zero);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _initPosition(context));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initPosition(context));
     _snapController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 220));
     _snapController.addListener(() {
@@ -55,8 +53,7 @@ class _DraggableFabState extends State<DraggableFab>
   }
 
   void _initPosition(BuildContext context) {
-    final rb =
-        _childKey.currentContext?.findRenderObject() as RenderBox?;
+    final rb = _childKey.currentContext?.findRenderObject() as RenderBox?;
     if (rb != null) _widgetSize = rb.size;
 
     final size = MediaQuery.of(context).size;
@@ -117,15 +114,13 @@ class _DraggableFabState extends State<DraggableFab>
   /// [securityTop] … [screenHeight - widgetHeight - securityBottom].
   Offset _snapToEdge(Offset center, Size screen) {
     final minTop = widget.securityTop;
-    final maxTop =
-        screen.height - _widgetSize.height - widget.securityBottom;
+    final maxTop = screen.height - _widgetSize.height - widget.securityBottom;
 
-    final double left = center.dx < screen.width / 2
-        ? 0
-        : screen.width - _widgetSize.width;
+    final double left =
+        center.dx < screen.width / 2 ? 0 : screen.width - _widgetSize.width;
 
-    final double top = center.dy
-        .clamp(minTop, maxTop.clamp(minTop, double.infinity));
+    final double top =
+        center.dy.clamp(minTop, maxTop.clamp(minTop, double.infinity));
 
     return Offset(left, top);
   }

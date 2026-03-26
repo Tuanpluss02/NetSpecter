@@ -390,7 +390,8 @@ class InspectorSession extends ChangeNotifier {
       reqBytes = entry.inlineRequestBody;
       resBytes = entry.inlineResponseBody;
       reqPreview = BodyDecodeService.decode(reqBytes, entry.requestContentType);
-      resPreview = BodyDecodeService.decode(resBytes, entry.responseContentType);
+      resPreview =
+          BodyDecodeService.decode(resBytes, entry.responseContentType);
     } else {
       final offset = entry.fileOffset;
       final length = entry.fileLength;
@@ -487,5 +488,4 @@ class InspectorSession extends ChangeNotifier {
     _initFuture = null;
     super.dispose();
   }
-
 }

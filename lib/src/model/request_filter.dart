@@ -158,5 +158,6 @@ class RequestFilter {
         query,
       );
 
-  static bool _setsEqual(Set<String> a, Set<String> b) => a.length == b.length && a.containsAll(b);
+  static bool _setsEqual(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.containsAll(b);
 }

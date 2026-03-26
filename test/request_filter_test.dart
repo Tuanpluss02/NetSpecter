@@ -69,7 +69,8 @@ void main() {
         host: 'api',
         query: 'foo',
       );
-      expect(f.activeFilterCount, 5); // methods + status + domains + host + query
+      expect(
+          f.activeFilterCount, 5); // methods + status + domains + host + query
     });
 
     test('all five groups active', () {
@@ -194,7 +195,9 @@ void main() {
     test('query matches errorMessage', () {
       final f = RequestFilter(query: 'timeout');
       expect(
-        f.matches(_entry(url: 'https://api.example.com', errorMessage: 'Connection timeout')),
+        f.matches(_entry(
+            url: 'https://api.example.com',
+            errorMessage: 'Connection timeout')),
         isTrue,
       );
     });
@@ -244,7 +247,8 @@ void main() {
     });
 
     test('different methods are not equal', () {
-      expect(RequestFilter(methods: {'GET'}), isNot(equals(RequestFilter(methods: {'POST'}))));
+      expect(RequestFilter(methods: {'GET'}),
+          isNot(equals(RequestFilter(methods: {'POST'}))));
     });
 
     test('different status flags are not equal', () {
@@ -252,7 +256,8 @@ void main() {
     });
 
     test('different query are not equal', () {
-      expect(RequestFilter(query: 'a'), isNot(equals(RequestFilter(query: 'b'))));
+      expect(
+          RequestFilter(query: 'a'), isNot(equals(RequestFilter(query: 'b'))));
     });
   });
 
@@ -266,7 +271,8 @@ void main() {
 
     test('domains set is unmodifiable', () {
       final f = RequestFilter(domains: {'example.com'});
-      expect(() => (f.domains as dynamic).add('other.com'), throwsUnsupportedError);
+      expect(() => (f.domains as dynamic).add('other.com'),
+          throwsUnsupportedError);
     });
   });
 
@@ -274,7 +280,8 @@ void main() {
 
   group('RequestFilter.extractDomain', () {
     test('returns host from valid URL', () {
-      expect(RequestFilter.extractDomain('https://api.example.com/v1'), 'api.example.com');
+      expect(RequestFilter.extractDomain('https://api.example.com/v1'),
+          'api.example.com');
     });
 
     test('returns unknown for unparseable URL', () {

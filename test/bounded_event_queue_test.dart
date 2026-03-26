@@ -89,6 +89,7 @@ void main() {
   // ── assert ────────────────────────────────────────────────────────────────
 
   test('asserts maxSize > 0', () {
-    expect(() => BoundedEventQueue<int>(maxSize: 0), throwsA(isA<AssertionError>()));
+    expect(() => BoundedEventQueue<int>(maxSize: 0),
+        throwsA(isA<AssertionError>()));
   });
 }

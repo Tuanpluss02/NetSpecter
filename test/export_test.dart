@@ -41,7 +41,8 @@ void main() {
     });
 
     test('skips body when body starts with [  (binary placeholder)', () {
-      final cmd = CurlGenerator.fromRecord(_record(requestBodyPreview: '[binary: 100 bytes]'));
+      final cmd = CurlGenerator.fromRecord(
+          _record(requestBodyPreview: '[binary: 100 bytes]'));
       expect(cmd, isNot(contains('--data-raw')));
     });
 
@@ -58,7 +59,8 @@ void main() {
     });
 
     test('escapes single quotes in URL', () {
-      final cmd = CurlGenerator.fromRecord(_record(url: "https://example.com/it's"));
+      final cmd =
+          CurlGenerator.fromRecord(_record(url: "https://example.com/it's"));
       expect(cmd, contains("'https://example.com/it'\\''s'"));
     });
 
@@ -124,7 +126,8 @@ void main() {
       ]);
       final req = ((har['log'] as Map)['entries'] as List).first as Map;
       final headers = (req['request'] as Map)['headers'] as List;
-      expect(headers.first, {'name': 'Content-Type', 'value': 'application/json'});
+      expect(
+          headers.first, {'name': 'Content-Type', 'value': 'application/json'});
     });
 
     test('empty records list produces empty entries', () {
@@ -196,10 +199,12 @@ void main() {
       final body = (item['request'] as Map)['body'] as Map;
       expect(body['mode'], 'urlencoded');
       final urlencoded = body['urlencoded'] as List;
-      expect(urlencoded, containsAll([
-        {'key': 'key', 'value': 'value'},
-        {'key': 'foo', 'value': 'bar'},
-      ]));
+      expect(
+          urlencoded,
+          containsAll([
+            {'key': 'key', 'value': 'value'},
+            {'key': 'foo', 'value': 'bar'},
+          ]));
     });
 
     test('formdata mode for multipart/form-data', () {
@@ -215,7 +220,8 @@ void main() {
     });
 
     test('body is null when requestBodyPreview is null', () {
-      final col = PostmanExporter.fromRecords([_record(requestBodyPreview: null)]);
+      final col =
+          PostmanExporter.fromRecords([_record(requestBodyPreview: null)]);
       final item = (col['item'] as List).first as Map;
       expect((item['request'] as Map)['body'], isNull);
     });

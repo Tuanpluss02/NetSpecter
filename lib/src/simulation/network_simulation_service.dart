@@ -15,7 +15,8 @@ class NetworkSimulationService {
     required int uploadBytes,
   }) async {
     if (profile.offline) {
-      throw const SimulatedNetworkException('Simulated offline mode is enabled.');
+      throw const SimulatedNetworkException(
+          'Simulated offline mode is enabled.');
     }
 
     if (profile.latencyMs > 0) {

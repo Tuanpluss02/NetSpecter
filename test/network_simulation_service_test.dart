@@ -32,7 +32,8 @@ void main() {
         downloadKbps: 1000,
         uploadKbps: 0,
       );
-      final delay = NetworkSimulationService.throughputDelayForChunk(profile, 1000);
+      final delay =
+          NetworkSimulationService.throughputDelayForChunk(profile, 1000);
       expect(delay, const Duration(milliseconds: 8));
     });
   });
@@ -50,7 +51,9 @@ void main() {
       );
     });
 
-    test('completes without delay when profile has no latency and no upload throttle', () async {
+    test(
+        'completes without delay when profile has no latency and no upload throttle',
+        () async {
       final sw = Stopwatch()..start();
       await NetworkSimulationService.applyBeforeRequest(
         NetworkSimulationProfile.none,

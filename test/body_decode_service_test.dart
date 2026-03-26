@@ -18,7 +18,8 @@ void main() {
 
     test('returns UTF-8 string for text content', () {
       final bytes = Uint8List.fromList(utf8.encode('hello world'));
-      expect(BodyDecodeService.decode(bytes, 'application/json'), 'hello world');
+      expect(
+          BodyDecodeService.decode(bytes, 'application/json'), 'hello world');
     });
 
     test('returns binary placeholder for image content type', () {
@@ -145,7 +146,8 @@ void main() {
     });
 
     test('returns (null, null, false) for malformed raw bytes', () {
-      final (req, res, truncated) = BodyDecodeService.unpackToText(Uint8List.fromList([1, 2, 3]));
+      final (req, res, truncated) =
+          BodyDecodeService.unpackToText(Uint8List.fromList([1, 2, 3]));
       expect(req, isNull);
       expect(res, isNull);
       expect(truncated, isFalse);
@@ -159,14 +161,16 @@ void main() {
       final reqText = '{"id":1}';
       final resText = '{"ok":true}';
       final packed = _packBodies(reqText, resText);
-      final (reqBytes, resBytes, truncated) = BodyDecodeService.unpackToBytes(packed);
+      final (reqBytes, resBytes, truncated) =
+          BodyDecodeService.unpackToBytes(packed);
       expect(utf8.decode(reqBytes!), reqText);
       expect(utf8.decode(resBytes!), resText);
       expect(truncated, isFalse);
     });
 
     test('returns (null, null, false) for malformed raw bytes', () {
-      final (req, res, truncated) = BodyDecodeService.unpackToBytes(Uint8List.fromList([0xFF]));
+      final (req, res, truncated) =
+          BodyDecodeService.unpackToBytes(Uint8List.fromList([0xFF]));
       expect(req, isNull);
       expect(res, isNull);
       expect(truncated, isFalse);
@@ -184,7 +188,8 @@ Uint8List _packBodies(String req, String res, {bool truncated = false}) {
   return Uint8List.fromList(utf8.encode(json));
 }
 
-Uint8List _packBodiesPartial({String? req, String? res, bool truncated = false}) {
+Uint8List _packBodiesPartial(
+    {String? req, String? res, bool truncated = false}) {
   final map = <String, dynamic>{'truncated': truncated};
   if (req != null) map['req'] = base64.encode(utf8.encode(req));
   if (res != null) map['res'] = base64.encode(utf8.encode(res));

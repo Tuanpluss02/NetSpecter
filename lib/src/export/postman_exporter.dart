@@ -98,8 +98,7 @@ class PostmanExporter {
     }
 
     final host = uri.host.split('.');
-    final pathSegments =
-        uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final pathSegments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
     final queryParams = uri.queryParametersAll.entries
         .expand((e) => e.value.map((v) => {'key': e.key, 'value': v}))
         .toList();
