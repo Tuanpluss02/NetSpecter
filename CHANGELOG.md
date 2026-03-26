@@ -1,3 +1,17 @@
+## 1.1.2
+
+### Added
+- Postman export functionality for request records and NetworkTab integration
+- Request replay and share functionality for request details (cURL, HAR, Postman)
+- Method filtering and reset support in the filter panel
+- error_summary widget to summarize request errors
+
+### Changed
+- Updated RequestDetailPage to use new ReplayHandler and ShareHandler
+- Added securityTop parameter to DraggableFab for improved positioning
+- Refactored inspector session imports and usage across multiple files
+- Updated tests to reflect changes in filtering logic and request handling
+
 ## 1.1.1
 
 ### Fixed
