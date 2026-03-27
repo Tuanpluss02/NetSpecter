@@ -383,13 +383,32 @@ class DetailTabsBuilder {
     DetailSection section, {
     TextStyle? valueStyle,
   }) {
-    int matchOffset = matches.indexWhere((m) => m.section == section);
-    if (matchOffset < 0) matchOffset = 0;
-    final sectionMatchCount = matches.where((m) => m.section == section).length;
+    final baseStyle = valueStyle ??
+        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+          fontSize: 12,
+          color: InterceptlyTheme.textSecondary,
+        );
 
-    final highlight = activeGlobalIndex != null &&
-        activeGlobalIndex! >= matchOffset &&
-        activeGlobalIndex! < matchOffset + sectionMatchCount;
+    Widget valueWidget;
+    if (query.isNotEmpty) {
+      final sectionFirstIdx = matches.indexWhere((m) => m.section == section);
+      if (sectionFirstIdx >= 0) {
+        final spans = JsonViewer.buildHighlightedSpans(
+          value,
+          query.toLowerCase(),
+          sectionFirstIdx,
+          activeGlobalIndex,
+          baseStyle.color ?? InterceptlyTheme.textSecondary,
+        );
+        valueWidget = Text.rich(
+          TextSpan(style: baseStyle, children: spans),
+        );
+      } else {
+        valueWidget = Text(value, style: baseStyle);
+      }
+    } else {
+      valueWidget = Text(value, style: baseStyle);
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,20 +423,7 @@ class DetailTabsBuilder {
             ),
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: (valueStyle ??
-                    InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                      fontSize: 12,
-                      color: InterceptlyTheme.textSecondary,
-                    ))
-                .copyWith(
-              backgroundColor:
-                  highlight ? InterceptlyGlobalColor.highlightSoft : null,
-            ),
-          ),
-        ),
+        Expanded(child: valueWidget),
       ],
     );
   }

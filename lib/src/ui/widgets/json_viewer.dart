@@ -91,6 +91,61 @@ class JsonViewer extends StatefulWidget {
     return count;
   }
 
+  /// Build highlighted [TextSpan] list for [text], marking query matches.
+  ///
+  /// [matchOffset] is the global index of the first match within [text].
+  /// [activeGlobalIndex] is the currently selected match (painted orange).
+  /// All other matches are painted with the soft highlight colour.
+  static List<TextSpan> buildHighlightedSpans(
+    String text,
+    String lowerQuery,
+    int matchOffset,
+    int? activeGlobalIndex,
+    Color baseColor,
+  ) {
+    final spans = <TextSpan>[];
+    final lowerText = text.toLowerCase();
+    int start = 0;
+    int currentMatch = matchOffset;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index < 0) {
+        if (start < text.length) {
+          spans.add(TextSpan(
+            text: text.substring(start),
+            style: TextStyle(color: baseColor),
+          ));
+        }
+        break;
+      }
+
+      if (index > start) {
+        spans.add(TextSpan(
+          text: text.substring(start, index),
+          style: TextStyle(color: baseColor),
+        ));
+      }
+
+      final isActive = currentMatch == activeGlobalIndex;
+      currentMatch++;
+
+      spans.add(TextSpan(
+        text: text.substring(index, index + lowerQuery.length),
+        style: TextStyle(
+          color: baseColor,
+          backgroundColor: isActive
+              ? _JsonViewerState._activeHighlightColor
+              : _JsonViewerState._highlightColor,
+        ),
+      ));
+
+      start = index + lowerQuery.length;
+    }
+
+    return spans;
+  }
+
   @override
   State<JsonViewer> createState() => _JsonViewerState();
 }
@@ -209,6 +264,7 @@ class _JsonNode extends StatefulWidget {
 class _JsonNodeState extends State<_JsonNode> {
   late bool _isExpanded;
   bool _userToggled = false;
+  GlobalKey? _activeScrollKey;
 
   @override
   void initState() {
@@ -223,10 +279,11 @@ class _JsonNodeState extends State<_JsonNode> {
   @override
   void didUpdateWidget(covariant _JsonNode oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reset user toggle when search navigation changes
+    // Reset user toggle and scroll key when search navigation changes
     if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
         widget.searchQuery != oldWidget.searchQuery) {
       _userToggled = false;
+      _activeScrollKey = null;
     }
     // Auto-expand if the active match is inside this subtree
     if (!_userToggled && !_isExpanded && _subtreeContainsActiveMatch()) {
@@ -285,8 +342,8 @@ class _JsonNodeState extends State<_JsonNode> {
     if (widget.nodeKey != null) {
       final keyText = '"${widget.nodeKey}"';
       if (hasQuery) {
-        final keySpans = _highlightText(keyText, query, currentOffset,
-            widget.activeGlobalIndex, _JsonViewerState._keyColor);
+        final keySpans = JsonViewer.buildHighlightedSpans(keyText, query,
+            currentOffset, widget.activeGlobalIndex, _JsonViewerState._keyColor);
         currentOffset += JsonViewer._countIn(keyText, query);
         keyHtml = TextSpan(children: [
           ...keySpans,
@@ -388,10 +445,16 @@ class _JsonNodeState extends State<_JsonNode> {
     TextSpan valueSpan;
     bool hasActiveMatch = false;
     if (hasQuery) {
-      final spans = _highlightText(
+      final spans = JsonViewer.buildHighlightedSpans(
           valueText, query, matchOffset, widget.activeGlobalIndex, valueColor);
-      hasActiveMatch = spans.any((s) =>
+      final hasActiveMatchInValue = spans.any((s) =>
           s.style?.backgroundColor == _JsonViewerState._activeHighlightColor);
+      // Also check if the active match landed in this node's key span
+      // (key matches are counted before value matches, so matchOffset is
+      // already past them — the key span carries the highlight but
+      // _buildLeafLine would otherwise miss it).
+      final hasActiveMatchInKey = _spanHasActiveHighlight(keySpan);
+      hasActiveMatch = hasActiveMatchInValue || hasActiveMatchInKey;
       valueSpan = TextSpan(children: spans);
     } else {
       valueSpan = TextSpan(
@@ -401,7 +464,10 @@ class _JsonNodeState extends State<_JsonNode> {
       );
     }
 
-    final key = hasActiveMatch ? GlobalKey() : null;
+    if (hasActiveMatch) {
+      _activeScrollKey ??= GlobalKey();
+    }
+    final key = hasActiveMatch ? _activeScrollKey : null;
     if (hasActiveMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ctx = key?.currentContext;
@@ -481,7 +547,10 @@ class _JsonNodeState extends State<_JsonNode> {
     }
 
     final hasActiveMatchInHeader = _spanHasActiveHighlight(keyHtml);
-    final headerKey = hasActiveMatchInHeader ? GlobalKey() : null;
+    if (hasActiveMatchInHeader) {
+      _activeScrollKey ??= GlobalKey();
+    }
+    final headerKey = hasActiveMatchInHeader ? _activeScrollKey : null;
     if (hasActiveMatchInHeader) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ctx = headerKey?.currentContext;
@@ -582,54 +651,6 @@ class _JsonNodeState extends State<_JsonNode> {
         ],
       ),
     );
-  }
-
-  /// Build highlighted TextSpan list for a text with search matches.
-  static List<TextSpan> _highlightText(String text, String lowerQuery,
-      int matchOffset, int? activeGlobalIndex, Color baseColor) {
-    final spans = <TextSpan>[];
-    final lowerText = text.toLowerCase();
-    int start = 0;
-    int currentMatch = matchOffset;
-
-    while (true) {
-      final index = lowerText.indexOf(lowerQuery, start);
-      if (index < 0) {
-        if (start < text.length) {
-          spans.add(TextSpan(
-            text: text.substring(start),
-            style: InterceptlyTheme.typography.bodyMediumRegular
-                .copyWith(color: baseColor),
-          ));
-        }
-        break;
-      }
-
-      if (index > start) {
-        spans.add(TextSpan(
-          text: text.substring(start, index),
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: baseColor),
-        ));
-      }
-
-      final isActive = currentMatch == activeGlobalIndex;
-      currentMatch++;
-
-      spans.add(TextSpan(
-        text: text.substring(index, index + lowerQuery.length),
-        style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-          color: baseColor,
-          backgroundColor: isActive
-              ? _JsonViewerState._activeHighlightColor
-              : _JsonViewerState._highlightColor,
-        ),
-      ));
-
-      start = index + lowerQuery.length;
-    }
-
-    return spans;
   }
 
   static bool _spanHasActiveHighlight(TextSpan span) {
