@@ -1,22 +1,30 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../capture/dio/interceptly_dio_interceptor.dart';
 import '../capture/http/interceptly_http_client.dart';
 import '../model/index_entry.dart';
 import '../model/interceptly_settings.dart';
-import '../model/request_filter.dart';
 import '../model/network_simulation.dart';
 import '../model/raw_capture.dart';
+import '../model/request_filter.dart';
 import '../model/request_record.dart';
 import '../session/inspector_session.dart';
-import '../ui/overlay/interceptly_overlay.dart'
-    show openInspectorIfNotOpen, registeredNavigatorKey;
+import '../ui/interceptly_theme.dart';
+import '../ui/overlay/draggable_fab.dart';
+import '../ui/screens/interceptly_screen.dart';
+import '../ui/trigger/inspector_trigger.dart';
+import '../ui/trigger/interceptly_config.dart';
+import '../ui/widgets/toast_notification.dart';
+
+part 'interceptly_attach.dart';
 
 /// Thin public facade over [InspectorSession].
-///
-/// Exposes a stable API surface for users who prefer `Interceptly.xxx` style
-/// calls. All state lives in [InspectorSession]; this class has no extra state.
 class Interceptly extends ChangeNotifier {
   Interceptly({
     InterceptlySettings? settings,
@@ -27,75 +35,42 @@ class Interceptly extends ChangeNotifier {
 
   static Interceptly? _sharedInstance;
 
-  /// The shared singleton instance backed by [InspectorSession.instance].
   static Interceptly get instance {
-    return _sharedInstance ??= Interceptly(
-      session: InspectorSession.instance,
-    );
+    return _sharedInstance ??= Interceptly(session: InspectorSession.instance);
   }
 
   final InspectorSession _session;
 
   // ---------------------------------------------------------------------------
-  // Passthrough getters
+  // attach / detach
   // ---------------------------------------------------------------------------
 
-  /// Underlying session that owns captured data and settings.
-  InspectorSession get session => _session;
-
-  /// Effective capture and storage settings.
-  InterceptlySettings get settings => _session.settings;
-
-  /// Current list of indexed network calls.
-  List<IndexEntry> get calls => _session.entries;
-
-  /// Active filter used by the inspector list.
-  RequestFilter get filter => _session.filter;
-
-  /// Number of events dropped due to bounded queue pressure.
-  int get droppedEvents => _session.droppedCount;
-
-  /// Whether capture is currently enabled.
-  bool get isEnabled => _session.isEnabled;
-
-  /// Active network simulation profile.
-  NetworkSimulationProfile get networkSimulation => _session.networkSimulation;
-
-  // ---------------------------------------------------------------------------
-  // Capture control
-  // ---------------------------------------------------------------------------
-
-  /// Enables request capture. Capture is enabled by default.
-  void enable() => _session.enable();
-
-  /// Disables request capture without removing the interceptor.
+  /// Attaches Interceptly to the running app without wrapping the widget tree.
   ///
-  /// The interceptor keeps running but all [recordCapture] calls are silently
-  /// dropped. Useful for sensitive screens (e.g. payment flows).
-  void disable() => _session.disable();
+  /// Call once after the navigator is ready — e.g. in a `addPostFrameCallback`
+  /// right after `runApp`:
+  ///
+  /// ```dart
+  /// runApp(MyApp(navigatorKey: _navKey));
+  /// WidgetsBinding.instance.addPostFrameCallback((_) {
+  ///   Interceptly.attach(navigatorKey: _navKey);
+  /// });
+  /// ```
+  static Future<void> attach({
+    required GlobalKey<NavigatorState> navigatorKey,
+    InspectorSession? session,
+    InterceptlyConfig? config,
+    Stream<void>? customTrigger,
+  }) =>
+      _attach(
+        navigatorKey: navigatorKey,
+        session: session,
+        config: config,
+        customTrigger: customTrigger,
+      );
 
-  /// Initializes background resources used by the session.
-  Future<void> initialize() => _session.initialize();
-
-  /// Records a completed capture payload.
-  void recordCapture(RawCapture capture) => _session.record(capture);
-
-  /// Loads full request/response detail for an indexed entry.
-  Future<RequestRecord> loadDetail(IndexEntry entry) =>
-      _session.loadDetail(entry);
-
-  /// Applies list filtering in the inspector UI.
-  void applyFilter(RequestFilter filter) => _session.applyFilter(filter);
-
-  /// Sets runtime network simulation to [profile].
-  void setNetworkSimulation(NetworkSimulationProfile profile) =>
-      _session.setNetworkSimulation(profile);
-
-  /// Clears simulation and returns to no-throttling behavior.
-  void clearNetworkSimulation() => _session.clearNetworkSimulation();
-
-  /// Clears captured entries and body storage for the current session.
-  Future<void> clear() => _session.clear();
+  /// Removes all overlay entries and cancels all trigger subscriptions.
+  static void detach() => _detach();
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -103,48 +78,54 @@ class Interceptly extends ChangeNotifier {
 
   /// Opens the inspector screen.
   ///
-  /// Uses the navigator key registered via [InterceptlyOverlay.navigatorKey].
-  ///
-  /// Pass a [context] only if the overlay has not registered yet.
-  ///
-  /// ```dart
-  /// // From a button (context always available):
-  /// Interceptly.showInspector(context);
-  ///
-  /// // From a notification handler (navigatorKey must have been passed to
-  /// // InterceptlyOverlay first):
-  /// Interceptly.showInspector();
-  /// ```
+  /// Pass a [context] only if [attach] has not been called yet.
   static void showInspector([BuildContext? context]) {
     assert(
-      registeredNavigatorKey != null || context != null,
-      'Interceptly.showInspector() requires either a BuildContext or a '
-      'registered navigatorKey from InterceptlyOverlay.',
+      _state.navigatorKey != null || context != null,
+      'Interceptly.showInspector() requires either a BuildContext or a prior '
+      'call to Interceptly.attach().',
     );
-    openInspectorIfNotOpen(
+    _pushInspector(
       session: InspectorSession.instance,
-      nav: registeredNavigatorKey?.currentState,
+      nav: _state.navigatorKey?.currentState,
       context: context,
     );
   }
 
   // ---------------------------------------------------------------------------
+  // Passthrough getters
+  // ---------------------------------------------------------------------------
+
+  InspectorSession get session => _session;
+  InterceptlySettings get settings => _session.settings;
+  List<IndexEntry> get calls => _session.entries;
+  RequestFilter get filter => _session.filter;
+  int get droppedEvents => _session.droppedCount;
+  bool get isEnabled => _session.isEnabled;
+  NetworkSimulationProfile get networkSimulation => _session.networkSimulation;
+
+  // ---------------------------------------------------------------------------
+  // Capture control
+  // ---------------------------------------------------------------------------
+
+  void enable() => _session.enable();
+  void disable() => _session.disable();
+  Future<void> initialize() => _session.initialize();
+  void recordCapture(RawCapture capture) => _session.record(capture);
+  Future<RequestRecord> loadDetail(IndexEntry entry) => _session.loadDetail(entry);
+  void applyFilter(RequestFilter filter) => _session.applyFilter(filter);
+  void setNetworkSimulation(NetworkSimulationProfile profile) =>
+      _session.setNetworkSimulation(profile);
+  void clearNetworkSimulation() => _session.clearNetworkSimulation();
+  Future<void> clear() => _session.clear();
+
+  // ---------------------------------------------------------------------------
   // Interceptor / client factories
   // ---------------------------------------------------------------------------
 
-  /// A ready-to-use Dio interceptor backed by [InspectorSession.instance].
-  ///
-  /// ```dart
-  /// dio.interceptors.add(Interceptly.dioInterceptor);
-  /// ```
   static InterceptlyDioInterceptor get dioInterceptor =>
       InterceptlyDioInterceptor(InspectorSession.instance);
 
-  /// Wraps an [http.Client] so all its requests are captured.
-  ///
-  /// ```dart
-  /// final client = Interceptly.wrapHttpClient(http.Client());
-  /// ```
   static InterceptlyHttpClient wrapHttpClient(http.Client inner) =>
       InterceptlyHttpClient.wrap(inner, InspectorSession.instance);
 

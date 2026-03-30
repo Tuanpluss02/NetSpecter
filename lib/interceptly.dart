@@ -13,7 +13,6 @@ export 'src/model/request_filter.dart';
 export 'src/model/request_record.dart';
 export 'src/session/inspector_session.dart' show InspectorSession;
 export 'src/ui/interceptly_theme.dart';
-export 'src/ui/overlay/interceptly_overlay.dart' show InterceptlyOverlay;
 export 'src/ui/trigger/inspector_trigger.dart';
 export 'src/ui/trigger/interceptly_config.dart';
 export 'src/ui/widgets/json_viewer.dart';

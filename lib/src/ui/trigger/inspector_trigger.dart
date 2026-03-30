@@ -1,7 +1,7 @@
 /// Defines how the inspector can be opened.
 ///
 /// Multiple triggers can be combined in [InterceptlyConfig.triggers].
-/// If `customTrigger` is passed to [InterceptlyOverlay], it opens the
+/// If `customTrigger` is passed to [Interceptly.attach], it opens the
 /// inspector on every event regardless of this set.
 enum InspectorTrigger {
   /// A draggable floating bug button (default).

@@ -45,16 +45,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:interceptly/interceptly.dart';
 
-void main() {
-  final dio = Dio()..interceptors.add(Interceptly.dioInterceptor);
+final _navKey = GlobalKey<NavigatorState>();
+final _dio = Dio()..interceptors.add(Interceptly.dioInterceptor);
 
-  runApp(
-    MaterialApp(
-      home: InterceptlyOverlay(
-        child: MyApp(dio: dio),
-      ),
-    ),
-  );
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MaterialApp(navigatorKey: _navKey, home: MyApp(dio: _dio)));
+
+  // Attach after the first frame so the navigator overlay is ready.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Interceptly.attach(navigatorKey: _navKey);
+  });
 }
 ```
 
@@ -112,7 +113,8 @@ Interceptly.instance.setNetworkSimulation(
 
 ### UI Triggers
 ```dart
-InterceptlyOverlay(
+Interceptly.attach(
+  navigatorKey: _navKey,
   config: InterceptlyConfig(
     triggers: {
       InspectorTrigger.floatingButton,
@@ -120,28 +122,24 @@ InterceptlyOverlay(
       InspectorTrigger.longPress,
     },
   ),
-  child: MyApp(),
-)
+);
 ```
 
 ---
 
-## Navigator Setup (MaterialApp.router)
+## Navigator Setup (MaterialApp.router / GoRouter)
 
-If using `MaterialApp.router`, pass the navigator key to the overlay:
+Pass the same navigator key you registered on the router:
 
 ```dart
-final navigatorKey = GlobalKey();
+final _navKey = GlobalKey<NavigatorState>();
 
-MaterialApp.router(
-  routerConfig: router,
-  builder: (context, child) {
-    return InterceptlyOverlay(
-      navigatorKey: navigatorKey,
-      child: child ?? const SizedBox(),
-    );
-  },
-)
+GoRouter(navigatorKey: _navKey, routes: [...]);
+
+// After runApp:
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  Interceptly.attach(navigatorKey: _navKey);
+});
 ```
 
 ---
