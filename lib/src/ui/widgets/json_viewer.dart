@@ -91,6 +91,67 @@ class JsonViewer extends StatefulWidget {
     return count;
   }
 
+  /// Build highlighted [TextSpan] list for [text], marking query matches.
+  ///
+  /// [matchOffset] is the global index of the first match within [text].
+  /// [activeGlobalIndex] is the currently selected match (painted orange).
+  /// All other matches are painted with the soft highlight colour.
+  static List<TextSpan> buildHighlightedSpans(
+    String text,
+    String lowerQuery,
+    int matchOffset,
+    int? activeGlobalIndex,
+    Color baseColor,
+  ) {
+    final spans = <TextSpan>[];
+    final lowerText = text.toLowerCase();
+    int start = 0;
+    int currentMatch = matchOffset;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index < 0) {
+        if (start < text.length) {
+          spans.add(
+            TextSpan(
+              text: text.substring(start),
+              style: TextStyle(color: baseColor),
+            ),
+          );
+        }
+        break;
+      }
+
+      if (index > start) {
+        spans.add(
+          TextSpan(
+            text: text.substring(start, index),
+            style: TextStyle(color: baseColor),
+          ),
+        );
+      }
+
+      final isActive = currentMatch == activeGlobalIndex;
+      currentMatch++;
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + lowerQuery.length),
+          style: TextStyle(
+            color: baseColor,
+            backgroundColor: isActive
+                ? _JsonViewerState._activeHighlightColor
+                : _JsonViewerState._highlightColor,
+          ),
+        ),
+      );
+
+      start = index + lowerQuery.length;
+    }
+
+    return spans;
+  }
+
   @override
   State<JsonViewer> createState() => _JsonViewerState();
 }
@@ -209,6 +270,7 @@ class _JsonNode extends StatefulWidget {
 class _JsonNodeState extends State<_JsonNode> {
   late bool _isExpanded;
   bool _userToggled = false;
+  GlobalKey? _activeScrollKey;
 
   @override
   void initState() {
@@ -223,10 +285,11 @@ class _JsonNodeState extends State<_JsonNode> {
   @override
   void didUpdateWidget(covariant _JsonNode oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reset user toggle when search navigation changes
+    // Reset user toggle and scroll key when search navigation changes
     if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
         widget.searchQuery != oldWidget.searchQuery) {
       _userToggled = false;
+      _activeScrollKey = null;
     }
     // Auto-expand if the active match is inside this subtree
     if (!_userToggled && !_isExpanded && _subtreeContainsActiveMatch()) {
@@ -285,27 +348,42 @@ class _JsonNodeState extends State<_JsonNode> {
     if (widget.nodeKey != null) {
       final keyText = '"${widget.nodeKey}"';
       if (hasQuery) {
-        final keySpans = _highlightText(keyText, query, currentOffset,
-            widget.activeGlobalIndex, _JsonViewerState._keyColor);
+        final keySpans = JsonViewer.buildHighlightedSpans(
+          keyText,
+          query,
+          currentOffset,
+          widget.activeGlobalIndex,
+          _JsonViewerState._keyColor,
+        );
         currentOffset += JsonViewer._countIn(keyText, query);
-        keyHtml = TextSpan(children: [
-          ...keySpans,
-          TextSpan(
+        keyHtml = TextSpan(
+          children: [
+            ...keySpans,
+            TextSpan(
               text: ': ',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: _JsonViewerState._punctuationColor)),
-        ]);
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: _JsonViewerState._punctuationColor,
+              ),
+            ),
+          ],
+        );
       } else {
-        keyHtml = TextSpan(children: [
-          TextSpan(
+        keyHtml = TextSpan(
+          children: [
+            TextSpan(
               text: keyText,
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: _JsonViewerState._keyColor)),
-          TextSpan(
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: _JsonViewerState._keyColor,
+              ),
+            ),
+            TextSpan(
               text: ': ',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: _JsonViewerState._punctuationColor)),
-        ]);
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: _JsonViewerState._punctuationColor,
+              ),
+            ),
+          ],
+        );
       }
     } else {
       keyHtml = const TextSpan();
@@ -315,26 +393,52 @@ class _JsonNodeState extends State<_JsonNode> {
         ? const TextSpan()
         : TextSpan(
             text: ',',
-            style: InterceptlyTheme.typography.bodyMediumRegular
-                .copyWith(color: _JsonViewerState._punctuationColor));
+            style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+              color: _JsonViewerState._punctuationColor,
+            ),
+          );
 
     // Leaf nodes
     if (widget.value == null) {
-      return _buildLeafLine(keyHtml, 'null', _JsonViewerState._nullColor,
-          currentOffset, query, comma);
+      return _buildLeafLine(
+        keyHtml,
+        'null',
+        _JsonViewerState._nullColor,
+        currentOffset,
+        query,
+        comma,
+      );
     }
     if (widget.value is bool) {
-      return _buildLeafLine(keyHtml, widget.value.toString(),
-          _JsonViewerState._boolColor, currentOffset, query, comma);
+      return _buildLeafLine(
+        keyHtml,
+        widget.value.toString(),
+        _JsonViewerState._boolColor,
+        currentOffset,
+        query,
+        comma,
+      );
     }
     if (widget.value is num) {
-      return _buildLeafLine(keyHtml, widget.value.toString(),
-          _JsonViewerState._numberColor, currentOffset, query, comma);
+      return _buildLeafLine(
+        keyHtml,
+        widget.value.toString(),
+        _JsonViewerState._numberColor,
+        currentOffset,
+        query,
+        comma,
+      );
     }
     if (widget.value is String) {
       final text = '"${widget.value}"';
-      return _buildLeafLine(keyHtml, text, _JsonViewerState._stringColor,
-          currentOffset, query, comma);
+      return _buildLeafLine(
+        keyHtml,
+        text,
+        _JsonViewerState._stringColor,
+        currentOffset,
+        query,
+        comma,
+      );
     }
 
     // Collection nodes
@@ -348,11 +452,13 @@ class _JsonNodeState extends State<_JsonNode> {
         openBracket: '[',
         closeBracket: ']',
         comma: comma,
-        entries: list.asMap().entries.map((e) => _ChildEntry(
-              key: null,
-              value: e.value,
-              isLast: e.key == list.length - 1,
-            )),
+        entries: list.asMap().entries.map(
+              (e) => _ChildEntry(
+                key: null,
+                value: e.value,
+                isLast: e.key == list.length - 1,
+              ),
+            ),
         valueMatchOffset: currentOffset,
       );
     }
@@ -368,47 +474,80 @@ class _JsonNodeState extends State<_JsonNode> {
         openBracket: '{',
         closeBracket: '}',
         comma: comma,
-        entries: entries.asMap().entries.map((e) => _ChildEntry(
-              key: e.value.key.toString(),
-              value: e.value.value,
-              isLast: e.key == entries.length - 1,
-            )),
+        entries: entries.asMap().entries.map(
+              (e) => _ChildEntry(
+                key: e.value.key.toString(),
+                value: e.value.value,
+                isLast: e.key == entries.length - 1,
+              ),
+            ),
         valueMatchOffset: currentOffset,
       );
     }
 
-    return _buildLeafLine(keyHtml, widget.value.toString(),
-        _JsonViewerState._punctuationColor, currentOffset, query, comma);
+    return _buildLeafLine(
+      keyHtml,
+      widget.value.toString(),
+      _JsonViewerState._punctuationColor,
+      currentOffset,
+      query,
+      comma,
+    );
   }
 
-  Widget _buildLeafLine(TextSpan keySpan, String valueText, Color valueColor,
-      int matchOffset, String? query, TextSpan commaSpan) {
+  Widget _buildLeafLine(
+    TextSpan keySpan,
+    String valueText,
+    Color valueColor,
+    int matchOffset,
+    String? query,
+    TextSpan commaSpan,
+  ) {
     final hasQuery = query != null && query.isNotEmpty;
 
     TextSpan valueSpan;
     bool hasActiveMatch = false;
     if (hasQuery) {
-      final spans = _highlightText(
-          valueText, query, matchOffset, widget.activeGlobalIndex, valueColor);
-      hasActiveMatch = spans.any((s) =>
-          s.style?.backgroundColor == _JsonViewerState._activeHighlightColor);
+      final spans = JsonViewer.buildHighlightedSpans(
+        valueText,
+        query,
+        matchOffset,
+        widget.activeGlobalIndex,
+        valueColor,
+      );
+      final hasActiveMatchInValue = spans.any(
+        (s) =>
+            s.style?.backgroundColor == _JsonViewerState._activeHighlightColor,
+      );
+      // Also check if the active match landed in this node's key span
+      // (key matches are counted before value matches, so matchOffset is
+      // already past them — the key span carries the highlight but
+      // _buildLeafLine would otherwise miss it).
+      final hasActiveMatchInKey = _spanHasActiveHighlight(keySpan);
+      hasActiveMatch = hasActiveMatchInValue || hasActiveMatchInKey;
       valueSpan = TextSpan(children: spans);
     } else {
       valueSpan = TextSpan(
         text: valueText,
-        style: InterceptlyTheme.typography.bodyMediumRegular
-            .copyWith(color: valueColor),
+        style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+          color: valueColor,
+        ),
       );
     }
 
-    final key = hasActiveMatch ? GlobalKey() : null;
+    if (hasActiveMatch) {
+      _activeScrollKey ??= GlobalKey();
+    }
+    final key = hasActiveMatch ? _activeScrollKey : null;
     if (hasActiveMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ctx = key?.currentContext;
         if (ctx != null && ctx.mounted) {
-          Scrollable.ensureVisible(ctx,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut);
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+          );
         }
       });
     }
@@ -434,9 +573,11 @@ class _JsonNodeState extends State<_JsonNode> {
           children: [
             keySpan,
             TextSpan(
-                text: text,
-                style: InterceptlyTheme.typography.bodyMediumRegular
-                    .copyWith(color: _JsonViewerState._punctuationColor)),
+              text: text,
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: _JsonViewerState._punctuationColor,
+              ),
+            ),
             commaSpan,
           ],
         ),
@@ -472,8 +613,10 @@ class _JsonNodeState extends State<_JsonNode> {
         // Advance offset by this child's total matches
         if (query != null && query.isNotEmpty) {
           if (entry.key != null) {
-            childOffset +=
-                JsonViewer._countIn('"${entry.key}"', query.toLowerCase());
+            childOffset += JsonViewer._countIn(
+              '"${entry.key}"',
+              query.toLowerCase(),
+            );
           }
           childOffset += JsonViewer.countMatches(entry.value, query);
         }
@@ -481,7 +624,10 @@ class _JsonNodeState extends State<_JsonNode> {
     }
 
     final hasActiveMatchInHeader = _spanHasActiveHighlight(keyHtml);
-    final headerKey = hasActiveMatchInHeader ? GlobalKey() : null;
+    if (hasActiveMatchInHeader) {
+      _activeScrollKey ??= GlobalKey();
+    }
+    final headerKey = hasActiveMatchInHeader ? _activeScrollKey : null;
     if (hasActiveMatchInHeader) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ctx = headerKey?.currentContext;
@@ -510,8 +656,11 @@ class _JsonNodeState extends State<_JsonNode> {
               children: [
                 Transform.rotate(
                   angle: _isExpanded ? 0 : -1.5708,
-                  child: const Icon(Icons.arrow_drop_down,
-                      size: 16, color: InterceptlyTheme.textMuted),
+                  child: const Icon(
+                    Icons.arrow_drop_down,
+                    size: 16,
+                    color: InterceptlyTheme.textMuted,
+                  ),
                 ),
                 Text.rich(
                   TextSpan(
@@ -522,7 +671,8 @@ class _JsonNodeState extends State<_JsonNode> {
                         text: openBracket,
                         style: InterceptlyTheme.typography.bodyMediumRegular
                             .copyWith(
-                                color: _JsonViewerState._punctuationColor),
+                          color: _JsonViewerState._punctuationColor,
+                        ),
                       ),
                       if (!_isExpanded)
                         TextSpan(
@@ -538,7 +688,8 @@ class _JsonNodeState extends State<_JsonNode> {
                           text: closeBracket,
                           style: InterceptlyTheme.typography.bodyMediumRegular
                               .copyWith(
-                                  color: _JsonViewerState._punctuationColor),
+                            color: _JsonViewerState._punctuationColor,
+                          ),
                         ),
                       if (!_isExpanded) comma,
                     ],
@@ -582,54 +733,6 @@ class _JsonNodeState extends State<_JsonNode> {
         ],
       ),
     );
-  }
-
-  /// Build highlighted TextSpan list for a text with search matches.
-  static List<TextSpan> _highlightText(String text, String lowerQuery,
-      int matchOffset, int? activeGlobalIndex, Color baseColor) {
-    final spans = <TextSpan>[];
-    final lowerText = text.toLowerCase();
-    int start = 0;
-    int currentMatch = matchOffset;
-
-    while (true) {
-      final index = lowerText.indexOf(lowerQuery, start);
-      if (index < 0) {
-        if (start < text.length) {
-          spans.add(TextSpan(
-            text: text.substring(start),
-            style: InterceptlyTheme.typography.bodyMediumRegular
-                .copyWith(color: baseColor),
-          ));
-        }
-        break;
-      }
-
-      if (index > start) {
-        spans.add(TextSpan(
-          text: text.substring(start, index),
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: baseColor),
-        ));
-      }
-
-      final isActive = currentMatch == activeGlobalIndex;
-      currentMatch++;
-
-      spans.add(TextSpan(
-        text: text.substring(index, index + lowerQuery.length),
-        style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-          color: baseColor,
-          backgroundColor: isActive
-              ? _JsonViewerState._activeHighlightColor
-              : _JsonViewerState._highlightColor,
-        ),
-      ));
-
-      start = index + lowerQuery.length;
-    }
-
-    return spans;
   }
 
   static bool _spanHasActiveHighlight(TextSpan span) {

@@ -30,7 +30,6 @@ class CustomRequestPage extends StatefulWidget {
   final String initialQueryText;
   final String initialHeadersText;
   final String initialBodyText;
-  final InspectorSession? session;
 
   const CustomRequestPage({
     super.key,
@@ -39,7 +38,6 @@ class CustomRequestPage extends StatefulWidget {
     required this.initialQueryText,
     required this.initialHeadersText,
     required this.initialBodyText,
-    this.session,
   });
 
   @override
@@ -133,11 +131,13 @@ class _CustomRequestPageState extends State<CustomRequestPage>
       final decoded = jsonDecode(trimmed);
       if (decoded is Map) {
         for (final entry in decoded.entries) {
-          pairs.add(_KeyValuePair(
-            key: entry.key.toString(),
-            value: entry.value.toString(),
-            enabled: true,
-          ));
+          pairs.add(
+            _KeyValuePair(
+              key: entry.key.toString(),
+              value: entry.value.toString(),
+              enabled: true,
+            ),
+          );
         }
         return pairs;
       }
@@ -172,10 +172,12 @@ class _CustomRequestPageState extends State<CustomRequestPage>
           icon: Icon(Icons.arrow_back, color: InterceptlyTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Custom Request',
-            style: InterceptlyTheme.typography.titleMediumBold.copyWith(
-              color: InterceptlyTheme.textPrimary,
-            )),
+        title: Text(
+          'Custom Request',
+          style: InterceptlyTheme.typography.titleMediumBold.copyWith(
+            color: InterceptlyTheme.textPrimary,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -196,18 +198,20 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                           .copyWith(color: InterceptlyTheme.textPrimary),
                       iconEnabledColor: InterceptlyTheme.textSecondary,
                       items: _methods
-                          .map((m) => DropdownMenuItem<String>(
-                                value: m,
-                                child: Text(
-                                  m,
-                                  style: InterceptlyTheme
-                                      .typography.bodyMediumRegular
-                                      .copyWith(
-                                    color: InterceptlyTheme.textPrimary,
-                                    // fontSize: 13,
-                                  ),
+                          .map(
+                            (m) => DropdownMenuItem<String>(
+                              value: m,
+                              child: Text(
+                                m,
+                                style: InterceptlyTheme
+                                    .typography.bodyMediumRegular
+                                    .copyWith(
+                                  color: InterceptlyTheme.textPrimary,
+                                  // fontSize: 13,
                                 ),
-                              ))
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value == null) return;
@@ -249,6 +253,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                   children: [
                     TabBar(
                       controller: _tabController,
+                      labelStyle: InterceptlyTheme.typography.labelMediumMedium,
+                      unselectedLabelStyle:
+                          InterceptlyTheme.typography.labelMediumMedium,
                       labelColor: InterceptlyTheme.indigo400,
                       unselectedLabelColor: InterceptlyTheme.textMuted,
                       indicatorColor: InterceptlyTheme.indigo500,
@@ -265,8 +272,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: InterceptlyTheme.indigo500
-                                      .withValues(alpha: 0.2),
+                                  color: InterceptlyTheme.indigo500.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -294,8 +302,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: InterceptlyTheme.indigo500
-                                      .withValues(alpha: 0.2),
+                                  color: InterceptlyTheme.indigo500.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -375,7 +384,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                         }
                       }
                       final currentFullUrl = _composeUrl(
-                          _baseUrlController.text.trim(), currentQueryMap);
+                        _baseUrlController.text.trim(),
+                        currentQueryMap,
+                      );
 
                       Navigator.pop(
                         context,
@@ -390,9 +401,7 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                     child: Text(
                       'Send Request',
                       style: InterceptlyTheme.typography.labelMediumMedium
-                          .copyWith(
-                        color: Colors.white,
-                      ),
+                          .copyWith(color: Colors.white),
                     ),
                   ),
                 ),
@@ -454,18 +463,18 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                   });
                 }),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
                         setState(() {
-                          _params.add(_KeyValuePair(
-                            key: '',
-                            value: '',
-                            enabled: true,
-                          ));
+                          _params.add(
+                            _KeyValuePair(key: '', value: '', enabled: true),
+                          );
                         });
                       },
                       child: Padding(
@@ -551,18 +560,18 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                   });
                 }),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
                         setState(() {
-                          _headers.add(_KeyValuePair(
-                            key: '',
-                            value: '',
-                            enabled: true,
-                          ));
+                          _headers.add(
+                            _KeyValuePair(key: '', value: '', enabled: true),
+                          );
                         });
                       },
                       child: Padding(
@@ -617,7 +626,12 @@ class _CustomRequestPageState extends State<CustomRequestPage>
               ),
               TextButton.icon(
                 onPressed: _formatJsonBody,
-                label: const Text('Format JSON'),
+                label: Text(
+                  'Format JSON',
+                  style: InterceptlyTheme.typography.labelMediumMedium.copyWith(
+                    color: InterceptlyTheme.indigo400,
+                  ),
+                ),
               ),
             ],
           ),
@@ -641,14 +655,15 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 0,
+                      ),
                     ),
                     style:
                         InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       color: InterceptlyTheme.textPrimary,
                       fontSize: 13,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
@@ -676,9 +691,7 @@ class _CustomRequestPageState extends State<CustomRequestPage>
       color: InterceptlyTheme.surface,
       child: Column(
         children: [
-          SizedBox(
-            height: 10,
-          ),
+          SizedBox(height: 10),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -691,7 +704,6 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                         InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       color: InterceptlyTheme.textMuted,
                       fontSize: 13,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
@@ -703,10 +715,7 @@ class _CustomRequestPageState extends State<CustomRequestPage>
     );
   }
 
-  Widget _buildKeyValueRow(
-    _KeyValuePair pair,
-    VoidCallback onToggle,
-  ) {
+  Widget _buildKeyValueRow(_KeyValuePair pair, VoidCallback onToggle) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
@@ -839,8 +848,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
     if (trimmed.isEmpty) return;
     try {
       final decoded = jsonDecode(trimmed);
-      _bodyController.text =
-          const JsonEncoder.withIndent('  ').convert(decoded);
+      _bodyController.text = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(decoded);
       _bodyController.selection = TextSelection.collapsed(
         offset: _bodyController.text.length,
       );
@@ -924,17 +934,21 @@ class _JsonSyntaxController extends TextEditingController {
 
     for (final match in _tokenRegex.allMatches(textValue)) {
       if (match.start > start) {
-        spans.add(TextSpan(
-          text: textValue.substring(start, match.start),
-          style: baseStyle,
-        ));
+        spans.add(
+          TextSpan(
+            text: textValue.substring(start, match.start),
+            style: baseStyle,
+          ),
+        );
       }
 
       final token = match.group(0)!;
-      spans.add(TextSpan(
-        text: token,
-        style: baseStyle.copyWith(color: _colorForToken(token, match.end)),
-      ));
+      spans.add(
+        TextSpan(
+          text: token,
+          style: baseStyle.copyWith(color: _colorForToken(token, match.end)),
+        ),
+      );
       start = match.end;
     }
 

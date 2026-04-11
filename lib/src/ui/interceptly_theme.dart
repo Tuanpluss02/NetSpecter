@@ -142,10 +142,12 @@ class InterceptlyTheme {
         unselectedItemColor: palette.textTertiary,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle:
-            typography.labelSmallMedium.copyWith(color: palette.actionPrimary),
-        unselectedLabelStyle:
-            typography.labelSmallMedium.copyWith(color: palette.textTertiary),
+        selectedLabelStyle: typography.labelSmallMedium.copyWith(
+          color: palette.actionPrimary,
+        ),
+        unselectedLabelStyle: typography.labelSmallMedium.copyWith(
+          color: palette.textTertiary,
+        ),
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: palette.actionPrimary,
@@ -195,18 +197,24 @@ class InterceptlyTheme {
   static StatusStyle getStatusStyle(int status) {
     if (status >= 200 && status < 300) {
       return const StatusStyle(
-          bg: green500, text: InterceptlyGlobalColor.black);
+        bg: green500,
+        text: InterceptlyGlobalColor.black,
+      );
     }
     if (status >= 400 && status < 500) {
       return const StatusStyle(
-          bg: yellow500, text: InterceptlyGlobalColor.black);
+        bg: yellow500,
+        text: InterceptlyGlobalColor.black,
+      );
     }
     if (status >= 500) {
       return const StatusStyle(bg: red500, text: InterceptlyGlobalColor.white);
     }
     if (status == 101) {
       return const StatusStyle(
-          bg: purple500, text: InterceptlyGlobalColor.white);
+        bg: purple500,
+        text: InterceptlyGlobalColor.white,
+      );
     }
     return const StatusStyle(bg: textMuted, text: InterceptlyGlobalColor.white);
   }
@@ -447,8 +455,5 @@ class StatusStyle {
   final Color bg;
   final Color text;
 
-  const StatusStyle({
-    required this.bg,
-    required this.text,
-  });
+  const StatusStyle({required this.bg, required this.text});
 }

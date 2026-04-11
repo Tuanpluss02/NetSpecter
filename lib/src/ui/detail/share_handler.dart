@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -17,10 +16,7 @@ class ShareHandler {
   final BuildContext context;
   final GlobalKey fabKey;
 
-  const ShareHandler({
-    required this.context,
-    required this.fabKey,
-  });
+  const ShareHandler({required this.context, required this.fabKey});
 
   void showShareMenu(RequestRecord record) {
     showModalBottomSheet(
@@ -58,8 +54,10 @@ class ShareHandler {
               ),
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.copy, color: InterceptlyTheme.indigo500),
+              leading: const Icon(
+                Icons.copy,
+                color: InterceptlyTheme.indigo500,
+              ),
               title: Text(
                 'Copy cURL',
                 style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
@@ -73,8 +71,10 @@ class ShareHandler {
             ),
             Divider(color: InterceptlyTheme.dividerSubtle, height: 1),
             ListTile(
-              leading:
-                  const Icon(Icons.download, color: InterceptlyTheme.indigo500),
+              leading: const Icon(
+                Icons.download,
+                color: InterceptlyTheme.indigo500,
+              ),
               title: Text(
                 'Export HAR',
                 style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
@@ -88,8 +88,10 @@ class ShareHandler {
             ),
             Divider(color: InterceptlyTheme.dividerSubtle, height: 1),
             ListTile(
-              leading: const Icon(Icons.upload_file,
-                  color: InterceptlyTheme.indigo500),
+              leading: const Icon(
+                Icons.upload_file,
+                color: InterceptlyTheme.indigo500,
+              ),
               title: Text(
                 'Export Postman Collection',
                 style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
@@ -127,8 +129,7 @@ class ShareHandler {
 
   Future<void> _exportPostmanRecords(List<RequestRecord> records) async {
     try {
-      final collectionData = PostmanExporter.fromRecords(records);
-      final collectionJson = jsonEncode(collectionData);
+      final collectionJson = PostmanExporter.toJson(records);
 
       final directory = await getTemporaryDirectory();
       final fileName =
@@ -153,8 +154,7 @@ class ShareHandler {
 
   void exportHarFile(RequestRecord record) async {
     try {
-      final harData = HarExporter.fromRecords([record]);
-      final harJson = jsonEncode(harData);
+      final harJson = HarExporter.toJson([record]);
 
       // Save to temp directory (system will auto-clean)
       final directory = await getTemporaryDirectory();
@@ -186,12 +186,7 @@ class ShareHandler {
       if (box != null) {
         final offset = box.localToGlobal(Offset.zero);
         final size = box.size;
-        return Rect.fromLTWH(
-          offset.dx,
-          offset.dy,
-          size.width,
-          size.height,
-        );
+        return Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
       }
     } catch (e) {
       // Ignore, will use default

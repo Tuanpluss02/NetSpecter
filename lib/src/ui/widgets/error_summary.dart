@@ -1,7 +1,4 @@
-String summarizeRequestError({
-  String? errorType,
-  String? errorMessage,
-}) {
+String summarizeRequestError({String? errorType, String? errorMessage}) {
   final source = '${errorType ?? ''} ${errorMessage ?? ''}'.toLowerCase();
 
   bool hasAny(List<String> terms) => terms.any(source.contains);

@@ -33,7 +33,7 @@ Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  interceptly: ^1.1.2
+  interceptly: ^1.1.3
 ```
 
 ---
@@ -42,19 +42,20 @@ dependencies:
 
 ```dart
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:interceptly/interceptly.dart';
 
-void main() {
-  final dio = Dio()..interceptors.add(Interceptly.dioInterceptor);
+final _navKey = GlobalKey<NavigatorState>();
+final _dio = Dio()..interceptors.add(InterceptlyDioInterceptor());
 
-  runApp(
-    MaterialApp(
-      home: InterceptlyOverlay(
-        child: MyApp(dio: dio),
-      ),
-    ),
-  );
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MaterialApp(navigatorKey: _navKey, home: MyApp(dio: _dio)));
+
+  if (kDebugMode || kProfileMode) {
+    Interceptly.attach(navigatorKey: _navKey);
+  }
 }
 ```
 
@@ -66,8 +67,8 @@ void main() {
 ```dart
 import 'package:http/http.dart' as http;
 
-final client = Interceptly.wrapHttpClient(http.Client());
-final res = await client.get(Uri.parse('[https://api.example.com/data](https://api.example.com/data)'));
+final client = InterceptlyHttpClient.wrap(http.Client());
+final res = await client.get(Uri.parse('https://api.example.com/data'));
 ```
 
 ### Chopper
@@ -112,7 +113,8 @@ Interceptly.instance.setNetworkSimulation(
 
 ### UI Triggers
 ```dart
-InterceptlyOverlay(
+Interceptly.attach(
+  navigatorKey: _navKey,
   config: InterceptlyConfig(
     triggers: {
       InspectorTrigger.floatingButton,
@@ -120,28 +122,24 @@ InterceptlyOverlay(
       InspectorTrigger.longPress,
     },
   ),
-  child: MyApp(),
-)
+);
 ```
 
 ---
 
-## Navigator Setup (MaterialApp.router)
+## Navigator Setup (MaterialApp.router / GoRouter)
 
-If using `MaterialApp.router`, pass the navigator key to the overlay:
+Pass the same navigator key you registered on the router:
 
 ```dart
-final navigatorKey = GlobalKey();
+final _navKey = GlobalKey<NavigatorState>();
 
-MaterialApp.router(
-  routerConfig: router,
-  builder: (context, child) {
-    return InterceptlyOverlay(
-      navigatorKey: navigatorKey,
-      child: child ?? const SizedBox(),
-    );
-  },
-)
+GoRouter(navigatorKey: _navKey, routes: [...]);
+
+// After runApp:
+if (kDebugMode || kProfileMode) {
+  Interceptly.attach(navigatorKey: _navKey);
+}
 ```
 
 ---

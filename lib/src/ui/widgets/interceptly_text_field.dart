@@ -80,6 +80,7 @@ class _InterceptlySearchFieldState extends State<InterceptlySearchField> {
       onSubmitted: widget.onSubmitted,
       decoration: InputDecoration(
         hintText: widget.hintText,
+        hintMaxLines: 2,
         hintStyle: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
           color: InterceptlyTheme.textMuted,
         ),
@@ -153,11 +154,13 @@ class InterceptlyLabeledTextField extends StatelessWidget {
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: InterceptlyTheme.typography.bodyMediumRegular
-            .copyWith(color: InterceptlyTheme.textMuted),
+        labelStyle: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+          color: InterceptlyTheme.textMuted,
+        ),
       ),
-      style: InterceptlyTheme.typography.bodyMediumRegular
-          .copyWith(color: InterceptlyTheme.textPrimary),
+      style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+        color: InterceptlyTheme.textPrimary,
+      ),
     );
   }
 }

@@ -55,9 +55,7 @@ class _FilterPanelState extends State<FilterPanel> {
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: InterceptlyTheme.surface,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -66,9 +64,7 @@ class _FilterPanelState extends State<FilterPanel> {
             padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
             decoration: BoxDecoration(
               color: InterceptlyTheme.surface,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               border: Border(
                 bottom: BorderSide(color: InterceptlyTheme.dividerSubtle),
               ),
@@ -91,19 +87,15 @@ class _FilterPanelState extends State<FilterPanel> {
                     children: [
                       Text(
                         'Filter Requests',
-                        style:
-                            InterceptlyTheme.typography.titleSmallBold.copyWith(
-                          color: InterceptlyTheme.textPrimary,
-                        ),
+                        style: InterceptlyTheme.typography.titleSmallBold
+                            .copyWith(color: InterceptlyTheme.textPrimary),
                       ),
                       TextButton(
                         onPressed: _resetFilters,
                         child: Text(
                           'Reset',
                           style: InterceptlyTheme.typography.titleMediumRegular
-                              .copyWith(
-                            color: InterceptlyTheme.indigo500,
-                          ),
+                              .copyWith(color: InterceptlyTheme.indigo500),
                         ),
                       ),
                     ],

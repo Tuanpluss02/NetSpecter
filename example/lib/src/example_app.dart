@@ -28,13 +28,10 @@ class InterceptlyExampleApp extends StatelessWidget {
         InterceptlyTheme.bind(context: context, themeMode: ThemeMode.system);
         return child ?? const SizedBox.shrink();
       },
-      home: InterceptlyOverlay(
-        navigatorKey: navigatorKey,
-        child: ExampleHomePage(
-          dio: clients.dio,
-          httpClient: clients.httpClient,
-          chopperClient: clients.chopperClient,
-        ),
+      home: ExampleHomePage(
+        dio: clients.dio,
+        httpClient: clients.httpClient,
+        chopperClient: clients.chopperClient,
       ),
     );
   }

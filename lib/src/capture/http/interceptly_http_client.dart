@@ -17,10 +17,8 @@ import '../../session/inspector_session.dart';
 /// final client = InterceptlyHttpClient.wrap(http.Client());
 /// ```
 class InterceptlyHttpClient extends http.BaseClient {
-  InterceptlyHttpClient(
-    this._inner, [
-    InspectorSession? session,
-  ]) : session = session ?? InspectorSession.instance;
+  InterceptlyHttpClient(this._inner, [InspectorSession? session])
+      : session = session ?? InspectorSession.instance;
 
   factory InterceptlyHttpClient.wrap(
     http.Client inner, [
@@ -61,20 +59,22 @@ class InterceptlyHttpClient extends http.BaseClient {
       response = await _inner.send(request);
     } catch (e) {
       final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
-      session.record(RawCapture(
-        id: id,
-        method: request.method,
-        url: request.url.toString(),
-        requestHeaders: reqHeaders,
-        responseHeaders: const {},
-        statusCode: 0,
-        durationMs: durationMs,
-        timestamp: startedAt,
-        requestBodyBytes: RawCapture.wrapBytes(bodyBytes),
-        requestContentType: request.headers['content-type'],
-        errorType: e.runtimeType.toString(),
-        errorMessage: e.toString(),
-      ));
+      session.record(
+        RawCapture(
+          id: id,
+          method: request.method,
+          url: request.url.toString(),
+          requestHeaders: reqHeaders,
+          responseHeaders: const {},
+          statusCode: 0,
+          durationMs: durationMs,
+          timestamp: startedAt,
+          requestBodyBytes: RawCapture.wrapBytes(bodyBytes),
+          requestContentType: request.headers['content-type'],
+          errorType: e.runtimeType.toString(),
+          errorMessage: e.toString(),
+        ),
+      );
       rethrow;
     }
 
@@ -134,22 +134,24 @@ class InterceptlyHttpClient extends http.BaseClient {
       recorded = true;
       final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
       final captured = captureBuffer.isEmpty ? null : captureBuffer.toBytes();
-      session.record(RawCapture(
-        id: id,
-        method: request.method,
-        url: request.url.toString(),
-        requestHeaders: reqHeaders,
-        responseHeaders: resHeaders,
-        statusCode: response.statusCode,
-        durationMs: durationMs,
-        timestamp: startedAt,
-        requestBodyBytes: RawCapture.wrapBytes(bodyBytes),
-        responseBodyBytes: RawCapture.wrapBytes(captured),
-        requestContentType: request.headers['content-type'],
-        responseContentType: response.headers['content-type'],
-        errorType: errorType,
-        errorMessage: errorMessage,
-      ));
+      session.record(
+        RawCapture(
+          id: id,
+          method: request.method,
+          url: request.url.toString(),
+          requestHeaders: reqHeaders,
+          responseHeaders: resHeaders,
+          statusCode: response.statusCode,
+          durationMs: durationMs,
+          timestamp: startedAt,
+          requestBodyBytes: RawCapture.wrapBytes(bodyBytes),
+          responseBodyBytes: RawCapture.wrapBytes(captured),
+          requestContentType: request.headers['content-type'],
+          responseContentType: response.headers['content-type'],
+          errorType: errorType,
+          errorMessage: errorMessage,
+        ),
+      );
     }
 
     late StreamSubscription<List<int>> sub;

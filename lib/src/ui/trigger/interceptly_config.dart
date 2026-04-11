@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'inspector_trigger.dart';
 
-/// Configuration for how [InterceptlyOverlay] behaves.
+/// Configuration for [Interceptly.attach].
 class InterceptlyConfig {
   const InterceptlyConfig({
     this.triggers = const {InspectorTrigger.floatingButton},

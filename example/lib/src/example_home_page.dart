@@ -110,8 +110,10 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
             ),
             const SizedBox(height: 24),
             if (_responsePreview.isNotEmpty) ...<Widget>[
-              Text('Last response',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Last response',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,

@@ -47,6 +47,10 @@ class _DisposeMessage {
   const _DisposeMessage();
 }
 
+class _DisposeAck {
+  const _DisposeAck();
+}
+
 // ---------------------------------------------------------------------------
 // WriterIsolate
 // ---------------------------------------------------------------------------
@@ -64,6 +68,7 @@ class WriterIsolate {
   SendPort? _sendPort;
   ReceivePort? _receivePort;
   Completer<void>? _clearCompleter;
+  Completer<void>? _disposeCompleter;
 
   final StreamController<IndexEntry> _resultController =
       StreamController<IndexEntry>.broadcast();
@@ -89,6 +94,9 @@ class WriterIsolate {
       } else if (message is _ClearAck) {
         _clearCompleter?.complete();
         _clearCompleter = null;
+      } else if (message is _DisposeAck) {
+        _disposeCompleter?.complete();
+        _disposeCompleter = null;
       }
     });
 
@@ -125,8 +133,12 @@ class WriterIsolate {
       _clearCompleter!.complete();
     }
     _clearCompleter = null;
-    _sendPort?.send(const _DisposeMessage());
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (_sendPort != null) {
+      final completer = Completer<void>();
+      _disposeCompleter = completer;
+      _sendPort!.send(const _DisposeMessage());
+      await completer.future;
+    }
     _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
     _receivePort?.close();
@@ -151,17 +163,14 @@ Future<void> _isolateEntry(_InitMessage init) async {
 
   await for (final message in receivePort) {
     if (message is _WriteMessage) {
-      final entry = await _processCapture(
-        message.capture,
-        bodyStore,
-        settings,
-      );
+      final entry = await _processCapture(message.capture, bodyStore, settings);
       init.replyPort.send(entry);
     } else if (message is _ClearMessage) {
       await bodyStore.resetFile(init.tempDirPath);
       init.replyPort.send(const _ClearAck());
     } else if (message is _DisposeMessage) {
       await bodyStore.dispose();
+      init.replyPort.send(const _DisposeAck());
       break;
     }
   }
@@ -233,7 +242,9 @@ Uint8List? _maybeTruncate(Uint8List? bytes, int maxBytes, int previewLen) {
   if (bytes == null || bytes.isEmpty) return null;
   if (bytes.length <= maxBytes) return bytes;
   return bytes.sublist(
-      0, previewLen < bytes.length ? previewLen : bytes.length);
+    0,
+    previewLen < bytes.length ? previewLen : bytes.length,
+  );
 }
 
 class _PackedBodies {
@@ -254,7 +265,9 @@ _PackedBodies _packBodies(
     if (bytes.length <= maxBody) return bytes;
     truncated = true;
     return bytes.sublist(
-        0, previewLen < bytes.length ? previewLen : bytes.length);
+      0,
+      previewLen < bytes.length ? previewLen : bytes.length,
+    );
   }
 
   final reqData = req != null && req.isNotEmpty ? truncate(req) : null;
@@ -268,5 +281,7 @@ _PackedBodies _packBodies(
 
   final encoded = utf8.encode(jsonEncode(map));
   return _PackedBodies(
-      bytes: Uint8List.fromList(encoded), truncated: truncated);
+    bytes: Uint8List.fromList(encoded),
+    truncated: truncated,
+  );
 }

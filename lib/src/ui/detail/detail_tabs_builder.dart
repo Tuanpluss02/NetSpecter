@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:interceptly/src/ui/interceptly_theme.dart';
@@ -72,6 +71,18 @@ class DetailTabsBuilder {
           isPending ? 'loading…' : '${record.durationMs} ms',
           DetailSection.overviewDuration,
         ),
+        const SizedBox(height: 16),
+        _buildOverviewRow(
+          'Request size',
+          _formatBytes(record.requestSizeBytes),
+          DetailSection.overviewDuration,
+        ),
+        const SizedBox(height: 16),
+        _buildOverviewRow(
+          'Response size',
+          isPending ? 'loading…' : _formatBytes(record.responseSizeBytes),
+          DetailSection.overviewDuration,
+        ),
         if (record.hasError) ...[
           const SizedBox(height: 16),
           _buildOverviewRow(
@@ -121,17 +132,11 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Request Headers'),
-        _buildJsonBox(
-          record.requestHeaders,
-          DetailSection.requestHeaders,
-        ),
+        _buildJsonBox(record.requestHeaders, DetailSection.requestHeaders),
         const SizedBox(height: 24),
         if (hasQueryParams) ...[
           _buildSectionHeader('Query Parameters'),
-          _buildJsonBox(
-            uri.queryParameters,
-            DetailSection.queryParams,
-          ),
+          _buildJsonBox(uri.queryParameters, DetailSection.queryParams),
           const SizedBox(height: 24),
         ],
         _buildSectionHeader('Request Body', color: InterceptlyTheme.indigo400),
@@ -139,7 +144,6 @@ class DetailTabsBuilder {
           contentType: record.requestContentType,
           headers: record.requestHeaders,
           bodyPreview: record.requestBodyPreview,
-          bodyBytes: record.requestBodyBytesPreview,
           section: DetailSection.requestBody,
         ),
       ],
@@ -163,8 +167,9 @@ class DetailTabsBuilder {
             const SizedBox(height: 12),
             Text(
               'Waiting for response...',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted),
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: InterceptlyTheme.textMuted,
+              ),
             ),
           ],
         ),
@@ -188,8 +193,9 @@ class DetailTabsBuilder {
               record.errorMessage ??
                   'Request failed before receiving a response.',
               textAlign: TextAlign.center,
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted),
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: InterceptlyTheme.textMuted,
+              ),
             ),
           ],
         ),
@@ -200,17 +206,13 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Response Headers'),
-        _buildJsonBox(
-          record.responseHeaders,
-          DetailSection.responseHeaders,
-        ),
+        _buildJsonBox(record.responseHeaders, DetailSection.responseHeaders),
         const SizedBox(height: 24),
         _buildSectionHeader('Response Body', color: InterceptlyTheme.green400),
         _buildBodyPreviewSection(
           contentType: record.responseContentType,
           headers: record.responseHeaders,
           bodyPreview: record.responseBodyPreview,
-          bodyBytes: record.responseBodyBytesPreview,
           section: DetailSection.responseBody,
         ),
       ],
@@ -222,8 +224,9 @@ class DetailTabsBuilder {
       return Center(
         child: Text(
           'No errors for this request.',
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: InterceptlyTheme.textMuted),
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
         ),
       );
     }
@@ -237,16 +240,10 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Error Summary', color: InterceptlyTheme.yellow400),
-        _buildJsonBox(
-          shortError,
-          DetailSection.errorType,
-        ),
+        _buildJsonBox(shortError, DetailSection.errorType),
         const SizedBox(height: 24),
         _buildSectionHeader('Error Type', color: InterceptlyTheme.yellow400),
-        _buildJsonBox(
-          record.errorType ?? 'None',
-          DetailSection.errorType,
-        ),
+        _buildJsonBox(record.errorType ?? 'None', DetailSection.errorType),
         const SizedBox(height: 24),
         _buildSectionHeader('Error Message', color: InterceptlyTheme.yellow400),
         _buildJsonBox(
@@ -263,9 +260,13 @@ class DetailTabsBuilder {
 
     if (messages.isEmpty) {
       return Center(
-          child: Text('No WebSocket messages captured.',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted)));
+        child: Text(
+          'No WebSocket messages captured.',
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -288,12 +289,14 @@ class DetailTabsBuilder {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 2.0),
+                    horizontal: 8.0,
+                    vertical: 2.0,
+                  ),
                   decoration: BoxDecoration(
                     color: InterceptlyTheme.green500.withValues(alpha: 0.1),
                     border: Border.all(
-                        color:
-                            InterceptlyTheme.green500.withValues(alpha: 0.2)),
+                      color: InterceptlyTheme.green500.withValues(alpha: 0.2),
+                    ),
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                   child: Text(
@@ -321,23 +324,21 @@ class DetailTabsBuilder {
           margin: const EdgeInsets.only(bottom: 12.0),
           decoration: BoxDecoration(
             color: InterceptlyTheme.surfaceContainer,
-            border: Border.all(
-              color: InterceptlyTheme.dividerSubtle,
-            ),
+            border: Border.all(color: InterceptlyTheme.dividerSubtle),
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
                 decoration: BoxDecoration(
                   color: bgColor,
                   border: Border(
-                    bottom: BorderSide(
-                      color: InterceptlyTheme.dividerSubtle,
-                    ),
+                    bottom: BorderSide(color: InterceptlyTheme.dividerSubtle),
                   ),
                 ),
                 child: Row(
@@ -346,10 +347,8 @@ class DetailTabsBuilder {
                     const SizedBox(width: 8),
                     Text(
                       label,
-                      style:
-                          InterceptlyTheme.typography.labelSmallMedium.copyWith(
-                        color: iconColor,
-                      ),
+                      style: InterceptlyTheme.typography.labelSmallMedium
+                          .copyWith(color: iconColor),
                     ),
                     const Spacer(),
                     Text(
@@ -383,13 +382,30 @@ class DetailTabsBuilder {
     DetailSection section, {
     TextStyle? valueStyle,
   }) {
-    int matchOffset = matches.indexWhere((m) => m.section == section);
-    if (matchOffset < 0) matchOffset = 0;
-    final sectionMatchCount = matches.where((m) => m.section == section).length;
+    final baseStyle = valueStyle ??
+        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+          fontSize: 12,
+          color: InterceptlyTheme.textSecondary,
+        );
 
-    final highlight = activeGlobalIndex != null &&
-        activeGlobalIndex! >= matchOffset &&
-        activeGlobalIndex! < matchOffset + sectionMatchCount;
+    Widget valueWidget;
+    if (query.isNotEmpty) {
+      final sectionFirstIdx = matches.indexWhere((m) => m.section == section);
+      if (sectionFirstIdx >= 0) {
+        final spans = JsonViewer.buildHighlightedSpans(
+          value,
+          query.toLowerCase(),
+          sectionFirstIdx,
+          activeGlobalIndex,
+          baseStyle.color ?? InterceptlyTheme.textSecondary,
+        );
+        valueWidget = Text.rich(TextSpan(style: baseStyle, children: spans));
+      } else {
+        valueWidget = Text(value, style: baseStyle);
+      }
+    } else {
+      valueWidget = Text(value, style: baseStyle);
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,20 +420,7 @@ class DetailTabsBuilder {
             ),
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: (valueStyle ??
-                    InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                      fontSize: 12,
-                      color: InterceptlyTheme.textSecondary,
-                    ))
-                .copyWith(
-              backgroundColor:
-                  highlight ? InterceptlyGlobalColor.highlightSoft : null,
-            ),
-          ),
-        ),
+        Expanded(child: valueWidget),
       ],
     );
   }
@@ -426,10 +429,9 @@ class DetailTabsBuilder {
     required String? contentType,
     required Map<String, String> headers,
     required String? bodyPreview,
-    required Uint8List? bodyBytes,
     required DetailSection section,
   }) {
-    final encodingLabel = _buildEncodingLabel(headers, bodyBytes);
+    final encodingLabel = _buildEncodingLabel(headers);
     final isBinary = _isBinaryPayload(contentType, bodyPreview);
 
     return Column(
@@ -445,7 +447,6 @@ class DetailTabsBuilder {
             ? _buildBinaryPreview(
                 contentType: contentType,
                 bodyPreview: bodyPreview,
-                bodyBytes: bodyBytes,
                 section: section,
               )
             : _buildJsonBox(
@@ -483,9 +484,7 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: InterceptlyTheme.surfaceContainer,
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -514,9 +513,7 @@ class DetailTabsBuilder {
     }
 
     if (ct.contains('application/graphql')) {
-      return {
-        'query': bodyPreview,
-      };
+      return {'query': bodyPreview};
     }
 
     final parsed = tryParseJson(bodyPreview);
@@ -616,69 +613,15 @@ class DetailTabsBuilder {
   Widget _buildBinaryPreview({
     required String? contentType,
     required String? bodyPreview,
-    required Uint8List? bodyBytes,
     required DetailSection section,
   }) {
     final kind = _binaryKind(contentType);
     final meta = <String, dynamic>{
       'kind': kind,
       'contentType': contentType ?? 'unknown',
-      'sizeBytes': bodyBytes?.length ?? _extractBinarySize(bodyPreview),
+      'sizeBytes': _extractBinarySize(bodyPreview),
     };
-
-    if (kind == 'pdf' && bodyBytes != null && bodyBytes.isNotEmpty) {
-      final head = utf8.decode(
-        bodyBytes.sublist(0, bodyBytes.length < 12 ? bodyBytes.length : 12),
-        allowMalformed: true,
-      );
-      meta['pdfHeader'] = head;
-    }
-
-    if ((kind == 'protobuf' || kind == 'msgpack' || kind == 'binary') &&
-        bodyBytes != null &&
-        bodyBytes.isNotEmpty) {
-      meta['hexPreview'] = _hexPreview(bodyBytes, 48);
-      meta['note'] = kind == 'protobuf'
-          ? 'Protobuf preview is raw bytes (schema required for decode).'
-          : kind == 'msgpack'
-              ? 'MessagePack preview is raw bytes (schema-aware decode not available).'
-              : 'Binary preview shown as metadata + hex sample.';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildJsonBox(meta, section),
-        if (kind == 'image' && bodyBytes != null && bodyBytes.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Container(
-            constraints: const BoxConstraints(maxHeight: 240),
-            decoration: BoxDecoration(
-              color: InterceptlyTheme.surfaceContainer,
-              border: Border.all(
-                color: InterceptlyTheme.dividerSubtle,
-              ),
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Image.memory(
-              bodyBytes,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Text(
-                    'Unable to render thumbnail from current preview bytes.',
-                    style: InterceptlyTheme.typography.bodyMediumRegular
-                        .copyWith(color: InterceptlyTheme.textMuted),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ],
-    );
+    return _buildJsonBox(meta, section);
   }
 
   String _binaryKind(String? contentType) {
@@ -697,24 +640,10 @@ class DetailTabsBuilder {
     return int.tryParse(m.group(1)!);
   }
 
-  String _hexPreview(Uint8List bytes, int maxBytes) {
-    final take = bytes.length < maxBytes ? bytes.length : maxBytes;
-    final sb = StringBuffer();
-    for (var i = 0; i < take; i++) {
-      sb.write(bytes[i].toRadixString(16).padLeft(2, '0'));
-      if (i != take - 1) sb.write(' ');
-    }
-    if (bytes.length > maxBytes) {
-      sb.write(' …');
-    }
-    return sb.toString();
-  }
-
-  String? _buildEncodingLabel(Map<String, String> headers, Uint8List? bytes) {
+  String? _buildEncodingLabel(Map<String, String> headers) {
     final encoding = _headerValue(headers, 'content-encoding');
     if (encoding == null || encoding.trim().isEmpty) return null;
-    final state = _inferEncodingState(encoding, bytes);
-    return 'content-encoding: $encoding ($state)';
+    return 'content-encoding: $encoding';
   }
 
   String? _headerValue(Map<String, String> headers, String key) {
@@ -722,40 +651,6 @@ class DetailTabsBuilder {
       if (entry.key.toLowerCase() == key.toLowerCase()) return entry.value;
     }
     return null;
-  }
-
-  String _inferEncodingState(String encoding, Uint8List? bytes) {
-    if (bytes == null || bytes.isEmpty) return 'unknown';
-    final lower = encoding.toLowerCase();
-
-    if (lower.contains('gzip')) {
-      final hasMagic =
-          bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
-      return hasMagic ? 'not decoded' : 'decoded';
-    }
-
-    if (lower.contains('br')) {
-      return _looksMostlyText(bytes) ? 'decoded' : 'not decoded';
-    }
-
-    if (lower.contains('deflate')) {
-      return _looksMostlyText(bytes) ? 'decoded' : 'unknown';
-    }
-
-    return _looksMostlyText(bytes) ? 'decoded' : 'unknown';
-  }
-
-  bool _looksMostlyText(Uint8List bytes) {
-    if (bytes.isEmpty) return false;
-    final sampleLen = bytes.length < 256 ? bytes.length : 256;
-    var printable = 0;
-    for (var i = 0; i < sampleLen; i++) {
-      final b = bytes[i];
-      final isPrintableAscii = b >= 0x20 && b <= 0x7E;
-      final isWhitespace = b == 0x09 || b == 0x0A || b == 0x0D;
-      if (isPrintableAscii || isWhitespace) printable++;
-    }
-    return printable / sampleLen >= 0.85;
   }
 
   Widget _buildSectionHeader(String title, {Color? color}) {
@@ -772,10 +667,7 @@ class DetailTabsBuilder {
     );
   }
 
-  Widget _buildJsonBox(
-    dynamic data,
-    DetailSection section,
-  ) {
+  Widget _buildJsonBox(dynamic data, DetailSection section) {
     int matchOffset = matches.indexWhere((m) => m.section == section);
     if (matchOffset < 0) matchOffset = 0;
 
@@ -784,9 +676,7 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: InterceptlyTheme.surfaceContainer,
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: JsonViewer(
@@ -796,5 +686,13 @@ class DetailTabsBuilder {
         activeGlobalIndex: activeGlobalIndex,
       ),
     );
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

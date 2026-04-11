@@ -63,16 +63,15 @@ class _ToastNotificationState extends State<ToastNotification>
       duration: const Duration(milliseconds: 300),
     );
 
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, 1.0), // Translate Y by full height
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
 
@@ -100,8 +99,10 @@ class _ToastNotificationState extends State<ToastNotification>
           child: Material(
             color: InterceptlyGlobalColor.transparent,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               decoration: BoxDecoration(
                 color: InterceptlyGlobalColor.white,
                 borderRadius: BorderRadius.circular(20.0),
@@ -110,7 +111,7 @@ class _ToastNotificationState extends State<ToastNotification>
                     color: InterceptlyGlobalColor.black.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ],
               ),
               child: Text(

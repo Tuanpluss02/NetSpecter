@@ -60,7 +60,8 @@ List<DetailMatch> computeMatches(
   addMatches(countOccurrences(record.method), 0, DetailSection.overviewMethod);
   addMatches(
     countOccurrences(
-        record.statusCode > 0 ? record.statusCode.toString() : 'N/A'),
+      record.statusCode > 0 ? record.statusCode.toString() : 'N/A',
+    ),
     0,
     DetailSection.overviewStatus,
   );
@@ -86,8 +87,11 @@ List<DetailMatch> computeMatches(
     // Request tab index 1
     final uri = Uri.tryParse(record.url);
     if (uri != null && uri.queryParameters.isNotEmpty) {
-      addMatches(JsonViewer.countMatches(uri.queryParameters, query), 1,
-          DetailSection.queryParams);
+      addMatches(
+        JsonViewer.countMatches(uri.queryParameters, query),
+        1,
+        DetailSection.queryParams,
+      );
     }
     addMatches(
       JsonViewer.countMatches(record.requestHeaders, query),
