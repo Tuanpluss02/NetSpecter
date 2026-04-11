@@ -52,8 +52,9 @@ class _ShakeDetectorState extends State<ShakeDetector> {
   }
 
   void _onAccelerometer(UserAccelerometerEvent event) {
-    final magnitude =
-        sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+    final magnitude = sqrt(
+      event.x * event.x + event.y * event.y + event.z * event.z,
+    );
 
     if (magnitude < widget.threshold) return;
 

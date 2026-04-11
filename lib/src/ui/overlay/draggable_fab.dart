@@ -38,7 +38,9 @@ class _DraggableFabState extends State<DraggableFab>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _initPosition(context));
     _snapController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 220));
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
     _snapController.addListener(() {
       if (_snapAnimation != null) {
         _positionVN.value = _snapAnimation!.value;
@@ -57,7 +59,8 @@ class _DraggableFabState extends State<DraggableFab>
     if (rb != null) _widgetSize = rb.size;
 
     final size = MediaQuery.of(context).size;
-    final target = widget.initPosition ??
+    final target =
+        widget.initPosition ??
         Offset(size.width, size.height / 2); // default: right-center
     final snapped = _snapToEdge(target, size);
     _positionVN.value = snapped;
@@ -89,13 +92,13 @@ class _DraggableFabState extends State<DraggableFab>
                       pos.dy + _widgetSize.height / 2,
                     );
                     final target = _snapToEdge(center, size);
-                    _snapAnimation = Tween<Offset>(
-                      begin: pos,
-                      end: target,
-                    ).animate(CurvedAnimation(
-                      parent: _snapController,
-                      curve: Curves.easeOutCubic,
-                    ));
+                    _snapAnimation = Tween<Offset>(begin: pos, end: target)
+                        .animate(
+                          CurvedAnimation(
+                            parent: _snapController,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        );
                     _snapController
                       ..reset()
                       ..forward();
@@ -116,11 +119,14 @@ class _DraggableFabState extends State<DraggableFab>
     final minTop = widget.securityTop;
     final maxTop = screen.height - _widgetSize.height - widget.securityBottom;
 
-    final double left =
-        center.dx < screen.width / 2 ? 0 : screen.width - _widgetSize.width;
+    final double left = center.dx < screen.width / 2
+        ? 0
+        : screen.width - _widgetSize.width;
 
-    final double top =
-        center.dy.clamp(minTop, maxTop.clamp(minTop, double.infinity));
+    final double top = center.dy.clamp(
+      minTop,
+      maxTop.clamp(minTop, double.infinity),
+    );
 
     return Offset(left, top);
   }

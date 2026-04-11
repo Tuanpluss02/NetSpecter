@@ -78,8 +78,9 @@ class RequestLogItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: mStyle.bg.withValues(alpha: 0.22),
                 border: Border.all(color: mStyle.border.withValues(alpha: 0.8)),
-                borderRadius:
-                    BorderRadius.circular(InterceptlyTheme.radius.sm + 2),
+                borderRadius: BorderRadius.circular(
+                  InterceptlyTheme.radius.sm + 2,
+                ),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -101,11 +102,8 @@ class RequestLogItem extends StatelessWidget {
                 children: [
                   Text(
                     path,
-                    style:
-                        InterceptlyTheme.typography.bodyMediumMedium.copyWith(
-                      fontSize: 13,
-                      color: colors.textPrimary,
-                    ),
+                    style: InterceptlyTheme.typography.bodyMediumMedium
+                        .copyWith(fontSize: 13, color: colors.textPrimary),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -114,10 +112,7 @@ class RequestLogItem extends StatelessWidget {
                     Text(
                       host,
                       style: InterceptlyTheme.typography.bodyMediumRegular
-                          .copyWith(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
+                          .copyWith(fontSize: 12, color: colors.textSecondary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -125,11 +120,11 @@ class RequestLogItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$time • $duration',
-                    style:
-                        InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                      fontSize: 11,
-                      color: InterceptlyTheme.textMuted,
-                    ),
+                    style: InterceptlyTheme.typography.bodyMediumRegular
+                        .copyWith(
+                          fontSize: 11,
+                          color: InterceptlyTheme.textMuted,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -141,8 +136,10 @@ class RequestLogItem extends StatelessWidget {
 
             // ── Status badge ─────────────────────────────────────────────────
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               decoration: BoxDecoration(
                 color: sStyle.bg,
                 borderRadius: BorderRadius.circular(12.0),
@@ -159,11 +156,8 @@ class RequestLogItem extends StatelessWidget {
                     )
                   : Text(
                       isErrorWithoutStatus ? 'ERR' : status.toString(),
-                      style:
-                          InterceptlyTheme.typography.bodyMediumBold.copyWith(
-                        fontSize: 11,
-                        color: sStyle.text,
-                      ),
+                      style: InterceptlyTheme.typography.bodyMediumBold
+                          .copyWith(fontSize: 11, color: sStyle.text),
                     ),
             ),
           ],

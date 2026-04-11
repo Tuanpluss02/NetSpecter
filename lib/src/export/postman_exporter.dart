@@ -14,8 +14,7 @@ class PostmanExporter {
   static String toJson(
     List<RequestRecord> records, {
     String collectionName = 'Interceptly Export',
-  }) =>
-      jsonEncode(toMap(records, collectionName: collectionName));
+  }) => jsonEncode(toMap(records, collectionName: collectionName));
 
   /// Converts [records] into a Postman Collection v2.1 root object.
   static Map<String, Object?> toMap(
@@ -55,31 +54,24 @@ class PostmanExporter {
 
   static Map<String, Object?>? _buildBody(RequestRecord r) {
     final body = r.requestBodyPreview;
-    if (body == null || body.isEmpty || BodyDecodeService.isPlaceholder(body)) return null;
+    if (body == null || body.isEmpty || BodyDecodeService.isPlaceholder(body))
+      return null;
 
     final contentType = r.requestContentType ?? '';
 
     if (contentType.contains('application/x-www-form-urlencoded')) {
-      return {
-        'mode': 'urlencoded',
-        'urlencoded': _parseUrlEncoded(body),
-      };
+      return {'mode': 'urlencoded', 'urlencoded': _parseUrlEncoded(body)};
     }
 
     if (contentType.contains('multipart/form-data')) {
-      return {
-        'mode': 'formdata',
-        'formdata': <Object>[],
-      };
+      return {'mode': 'formdata', 'formdata': <Object>[]};
     }
 
     return {
       'mode': 'raw',
       'raw': body,
       'options': {
-        'raw': {
-          'language': _rawLanguage(contentType),
-        },
+        'raw': {'language': _rawLanguage(contentType)},
       },
     };
   }
@@ -93,10 +85,9 @@ class PostmanExporter {
 
   static List<Map<String, String>> _parseUrlEncoded(String body) {
     try {
-      return Uri.splitQueryString(body)
-          .entries
-          .map((e) => {'key': e.key, 'value': e.value})
-          .toList();
+      return Uri.splitQueryString(
+        body,
+      ).entries.map((e) => {'key': e.key, 'value': e.value}).toList();
     } catch (_) {
       return [];
     }

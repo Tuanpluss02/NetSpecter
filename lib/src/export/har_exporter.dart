@@ -64,7 +64,8 @@ class HarExporter {
 
   static Map<String, Object?>? _buildPostData(RequestRecord r) {
     final body = r.requestBodyPreview;
-    if (body == null || body.isEmpty || BodyDecodeService.isPlaceholder(body)) return null;
+    if (body == null || body.isEmpty || BodyDecodeService.isPlaceholder(body))
+      return null;
     return {
       'mimeType': r.requestContentType ?? 'application/octet-stream',
       'text': body,

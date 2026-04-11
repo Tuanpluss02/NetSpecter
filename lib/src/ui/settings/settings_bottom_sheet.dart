@@ -180,28 +180,31 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                         iconEnabledColor: _colors.textSecondary,
                         iconDisabledColor: _colors.textTertiary,
                         value: _selectedPresetName,
-                        items: [
-                          ..._presetProfiles,
-                          const NetworkSimulationProfile(
-                            name: _customPresetName,
-                            offline: false,
-                            latencyMs: 0,
-                            downloadKbps: 0,
-                            uploadKbps: 0,
-                          ),
-                        ]
-                            .map((p) => DropdownMenuItem<String>(
-                                  value: p.name,
-                                  child: Text(
-                                    p.name,
-                                    style:
-                                        _typography.bodyMediumRegular.copyWith(
-                                      color: _colors.textPrimary,
-                                      fontSize: 12,
+                        items:
+                            [
+                                  ..._presetProfiles,
+                                  const NetworkSimulationProfile(
+                                    name: _customPresetName,
+                                    offline: false,
+                                    latencyMs: 0,
+                                    downloadKbps: 0,
+                                    uploadKbps: 0,
+                                  ),
+                                ]
+                                .map(
+                                  (p) => DropdownMenuItem<String>(
+                                    value: p.name,
+                                    child: Text(
+                                      p.name,
+                                      style: _typography.bodyMediumRegular
+                                          .copyWith(
+                                            color: _colors.textPrimary,
+                                            fontSize: 12,
+                                          ),
                                     ),
                                   ),
-                                ))
-                            .toList(),
+                                )
+                                .toList(),
                         onChanged: (value) {
                           if (value == null) return;
                           if (value == _customPresetName) {
@@ -213,8 +216,9 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                             return;
                           }
 
-                          final selected = _presetProfiles
-                              .firstWhere((p) => p.name == value);
+                          final selected = _presetProfiles.firstWhere(
+                            (p) => p.name == value,
+                          );
                           setState(() => _networkSimulation = selected);
                           widget.session.setNetworkSimulation(selected);
                         },
@@ -291,9 +295,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
       decoration: BoxDecoration(
         color: _colors.surfaceSecondary,
         borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,11 +358,13 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     for (int i = 0; i < children.length; i++) {
       separatedChildren.add(children[i]);
       if (i < children.length - 1) {
-        separatedChildren.add(Divider(
-          height: 1,
-          color: InterceptlyTheme.dividerSubtle,
-          indent: 16, // Optional indent
-        ));
+        separatedChildren.add(
+          Divider(
+            height: 1,
+            color: InterceptlyTheme.dividerSubtle,
+            indent: 16, // Optional indent
+          ),
+        );
       }
     }
 
@@ -368,13 +372,9 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
       decoration: BoxDecoration(
         color: _colors.surfaceSecondary,
         borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
       ),
-      child: Column(
-        children: separatedChildren,
-      ),
+      child: Column(children: separatedChildren),
     );
   }
 }
@@ -460,8 +460,10 @@ class _CustomSwitch extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: InterceptlyGlobalColor.white,
-              border:
-                  Border.all(color: InterceptlyGlobalColor.black12, width: 0.5),
+              border: Border.all(
+                color: InterceptlyGlobalColor.black12,
+                width: 0.5,
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: InterceptlyGlobalColor.black26,

@@ -12,7 +12,7 @@ import '../../session/inspector_session.dart';
 /// A Chopper interceptor that captures all requests and responses.
 class InterceptlyChopperInterceptor implements Interceptor {
   InterceptlyChopperInterceptor([InspectorSession? session])
-      : session = session ?? InspectorSession.instance;
+    : session = session ?? InspectorSession.instance;
 
   final InspectorSession session;
 
@@ -91,11 +91,13 @@ class InterceptlyChopperInterceptor implements Interceptor {
           .toString();
     }
 
-    final durationMs =
-        DateTime.now().difference(recordedStartedAt).inMilliseconds;
+    final durationMs = DateTime.now()
+        .difference(recordedStartedAt)
+        .inMilliseconds;
 
     final responseRequestBody = _extractBody(
-        (response.base.request as dynamic).body);
+      (response.base.request as dynamic).body,
+    );
 
     final resBody = _extractBody(response.body);
 
@@ -113,11 +115,15 @@ class InterceptlyChopperInterceptor implements Interceptor {
       durationMs: durationMs,
       timestamp: recordedStartedAt,
       requestBodyBytes: RawCapture.wrapBytes(
-          responseRequestBody != null
-              ? Uint8List.fromList(responseRequestBody)
-              : reqBody != null ? Uint8List.fromList(reqBody) : null),
+        responseRequestBody != null
+            ? Uint8List.fromList(responseRequestBody)
+            : reqBody != null
+            ? Uint8List.fromList(reqBody)
+            : null,
+      ),
       responseBodyBytes: RawCapture.wrapBytes(
-          resBody != null ? Uint8List.fromList(resBody) : null),
+        resBody != null ? Uint8List.fromList(resBody) : null,
+      ),
       requestContentType: response.base.request?.headers['content-type'],
       responseContentType: response.base.headers['content-type'],
       errorType: response.isSuccessful ? null : 'ChopperError',

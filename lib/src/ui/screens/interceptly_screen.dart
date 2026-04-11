@@ -12,10 +12,7 @@ import '../../session/inspector_session_view.dart';
 /// Main inspector screen showing captured network calls and actions.
 class InterceptlyScreen extends StatefulWidget {
   /// Creates the inspector screen bound to [session].
-  const InterceptlyScreen({
-    super.key,
-    required this.session,
-  });
+  const InterceptlyScreen({super.key, required this.session});
 
   /// Session used to read and mutate captured data.
   final InspectorSessionView session;
@@ -93,8 +90,9 @@ class _InterceptlyScreenState extends State<InterceptlyScreen> {
                         ? Icons.group_work
                         : Icons.public,
                   ),
-                  onPressed: () => widget.session
-                      .toggleGrouping(!widget.session.groupingEnabled),
+                  onPressed: () => widget.session.toggleGrouping(
+                    !widget.session.groupingEnabled,
+                  ),
                   tooltip: 'Group by domain',
                 ),
                 IconButton(

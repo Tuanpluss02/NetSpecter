@@ -237,7 +237,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
               if (record == null) {
                 return const Center(
                   child: CircularProgressIndicator(
-                      color: InterceptlyTheme.indigo500),
+                    color: InterceptlyTheme.indigo500,
+                  ),
                 );
               }
 
@@ -258,10 +259,12 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                 effectiveIndex = 0;
               }
 
-              final activeGlobalIndex =
-                  totalMatches == 0 ? null : effectiveIndex;
-              final activeMatch =
-                  totalMatches == 0 ? null : matches[effectiveIndex];
+              final activeGlobalIndex = totalMatches == 0
+                  ? null
+                  : effectiveIndex;
+              final activeMatch = totalMatches == 0
+                  ? null
+                  : matches[effectiveIndex];
 
               if (activeMatch != null &&
                   _tabController.index != activeMatch.tabIndex &&
@@ -278,12 +281,16 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 12.0),
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       color: InterceptlyTheme.surface,
                       border: Border(
-                          bottom: BorderSide(
-                              color: InterceptlyTheme.dividerSubtle)),
+                        bottom: BorderSide(
+                          color: InterceptlyTheme.dividerSubtle,
+                        ),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -315,9 +322,9 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                               : '${effectiveIndex + 1} / $totalMatches',
                           style: InterceptlyTheme.typography.bodyMediumRegular
                               .copyWith(
-                            fontSize: 12,
-                            color: InterceptlyTheme.textMuted,
-                          ),
+                                fontSize: 12,
+                                color: InterceptlyTheme.textMuted,
+                              ),
                         ),
                         IconButton(
                           icon: const Icon(
@@ -359,10 +366,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                     unselectedLabelColor: InterceptlyTheme.textQuaternary,
                     dividerColor: InterceptlyGlobalColor.transparent,
                     tabs: isWs
-                        ? const [
-                            Tab(text: 'Overview'),
-                            Tab(text: 'Messages'),
-                          ]
+                        ? const [Tab(text: 'Overview'), Tab(text: 'Messages')]
                         : const [
                             Tab(text: 'Overview'),
                             Tab(text: 'Request'),
@@ -380,7 +384,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                           matches: matches,
                           activeGlobalIndex: activeGlobalIndex,
                           query: _query,
-                          urlDecodeEnabled: widget.session.preferences.urlDecodeEnabled,
+                          urlDecodeEnabled:
+                              widget.session.preferences.urlDecodeEnabled,
                           tryParseJson: _tryParseJson,
                         );
                         return IndexedStack(
@@ -477,8 +482,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     final label = isPending
         ? 'PENDING'
         : isErrorWithoutStatus
-            ? 'ERR'
-            : '${entry.statusCode}';
+        ? 'ERR'
+        : '${entry.statusCode}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -524,10 +529,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     final record = _cachedRecord;
     if (record == null) return;
 
-    final shareHandler = ShareHandler(
-      context: context,
-      fabKey: _fabKey,
-    );
+    final shareHandler = ShareHandler(context: context, fabKey: _fabKey);
     shareHandler.showShareMenu(record);
   }
 

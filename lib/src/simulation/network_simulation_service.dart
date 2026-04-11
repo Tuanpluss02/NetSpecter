@@ -16,7 +16,8 @@ class NetworkSimulationService {
   }) async {
     if (profile.offline) {
       throw const SimulatedNetworkException(
-          'Simulated offline mode is enabled.');
+        'Simulated offline mode is enabled.',
+      );
     }
 
     if (profile.latencyMs > 0) {
@@ -50,13 +51,9 @@ class NetworkSimulationService {
   static Duration throughputDelayForChunk(
     NetworkSimulationProfile profile,
     int chunkBytes,
-  ) =>
-      _throughputDelay(bytes: chunkBytes, kbps: profile.downloadKbps);
+  ) => _throughputDelay(bytes: chunkBytes, kbps: profile.downloadKbps);
 
-  static Duration _throughputDelay({
-    required int bytes,
-    required int kbps,
-  }) {
+  static Duration _throughputDelay({required int bytes, required int kbps}) {
     if (bytes <= 0 || kbps <= 0) return Duration.zero;
     final ms = (bytes * 8 * 1000 / (kbps * 1000)).ceil();
     return ms <= 0 ? Duration.zero : Duration(milliseconds: ms);

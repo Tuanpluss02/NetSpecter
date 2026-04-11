@@ -95,8 +95,9 @@ class _NetworkTabState extends State<NetworkTab> {
 
     try {
       final allEntries = widget.session.entries;
-      final selectedEntries =
-          allEntries.where((e) => _selectedIds.contains(e.id)).toList();
+      final selectedEntries = allEntries
+          .where((e) => _selectedIds.contains(e.id))
+          .toList();
 
       final records = <RequestRecord>[];
       for (final entry in selectedEntries) {
@@ -192,8 +193,9 @@ class _NetworkTabState extends State<NetworkTab> {
       return Center(
         child: Text(
           'No network requests yet.',
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: InterceptlyTheme.textMuted),
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
         ),
       );
     }
@@ -207,10 +209,12 @@ class _NetworkTabState extends State<NetworkTab> {
         return _buildRequestItem(
           context: context,
           entry: req,
-          onTapNavigate: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) =>
-                RequestDetailPage(entry: req, session: widget.session),
-          )),
+          onTapNavigate: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  RequestDetailPage(entry: req, session: widget.session),
+            ),
+          ),
         );
       },
     );
@@ -225,8 +229,9 @@ class _NetworkTabState extends State<NetworkTab> {
       return Center(
         child: Text(
           'No network requests yet.',
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: InterceptlyTheme.textMuted),
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
         ),
       );
     }
@@ -236,9 +241,11 @@ class _NetworkTabState extends State<NetworkTab> {
       itemBuilder: (context, groupIndex) {
         final group = groups[groupIndex];
         final groupIds = group.requests.map((r) => r.id).toList();
-        final allGroupSelected = groupIds.isNotEmpty &&
+        final allGroupSelected =
+            groupIds.isNotEmpty &&
             groupIds.every((id) => _selectedIds.contains(id));
-        final someGroupSelected = !allGroupSelected &&
+        final someGroupSelected =
+            !allGroupSelected &&
             groupIds.any((id) => _selectedIds.contains(id));
 
         return Column(
@@ -272,13 +279,14 @@ class _NetworkTabState extends State<NetworkTab> {
                     _buildRequestItem(
                       context: context,
                       entry: record,
-                      onTapNavigate: () =>
-                          Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => RequestDetailPage(
-                          entry: record,
-                          session: widget.session,
+                      onTapNavigate: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RequestDetailPage(
+                            entry: record,
+                            session: widget.session,
+                          ),
                         ),
-                      )),
+                      ),
                     ),
                     if (!isLast)
                       Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
@@ -323,8 +331,8 @@ class _NetworkTabState extends State<NetworkTab> {
       duration: isPending
           ? 'loading…'
           : isErrorWithoutStatus
-              ? shortError
-              : '${entry.durationMs}ms',
+          ? shortError
+          : '${entry.durationMs}ms',
       status: entry.statusCode,
       hasError: entry.hasError,
       isPending: isPending,
@@ -341,4 +349,3 @@ class _NetworkTabState extends State<NetworkTab> {
     );
   }
 }
-

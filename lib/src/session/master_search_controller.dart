@@ -86,13 +86,15 @@ class MasterSearchController extends ChangeNotifier {
     }
 
     bool matchesInlineBody(IndexEntry e) {
-      final req =
-          BodyDecodeService.decode(e.inlineRequestBody, e.requestContentType)
-              ?.toLowerCase();
+      final req = BodyDecodeService.decode(
+        e.inlineRequestBody,
+        e.requestContentType,
+      )?.toLowerCase();
       if (req != null && req.contains(q)) return true;
-      final res =
-          BodyDecodeService.decode(e.inlineResponseBody, e.responseContentType)
-              ?.toLowerCase();
+      final res = BodyDecodeService.decode(
+        e.inlineResponseBody,
+        e.responseContentType,
+      )?.toLowerCase();
       return res != null && res.contains(q);
     }
 
@@ -157,11 +159,12 @@ class MasterSearchController extends ChangeNotifier {
             final decoded = raw.length > BodyDecodeService.computeThreshold
                 ? await compute(BodyDecodeService.unpackToText, raw)
                 : BodyDecodeService.unpackToText(raw);
-            final combined =
-                '${decoded.$1 ?? ''}\n${decoded.$2 ?? ''}'.toLowerCase();
+            final combined = '${decoded.$1 ?? ''}\n${decoded.$2 ?? ''}'
+                .toLowerCase();
             if (combined.contains(q)) return (true, e);
           } catch (e) {
-            if (kDebugMode) debugPrint('[Interceptly] master search file read error: $e');
+            if (kDebugMode)
+              debugPrint('[Interceptly] master search file read error: $e');
           }
           return (false, null);
         });

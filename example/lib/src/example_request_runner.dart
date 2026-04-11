@@ -41,7 +41,8 @@ class ExampleRequestRunner {
   Future<ExampleRequestResult> runHttpGet() async {
     final response = await httpClient.get(
       Uri.parse(
-          'https://69b6e039583f543fbd9ec00d.mockapi.io/interceptly/api/user'),
+        'https://69b6e039583f543fbd9ec00d.mockapi.io/interceptly/api/user',
+      ),
       headers: {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -59,7 +60,8 @@ class ExampleRequestRunner {
   Future<ExampleRequestResult> runChopperGet() async {
     final response = await chopperClient.get<dynamic, dynamic>(
       Uri.parse(
-          'https://69b6e039583f543fbd9ec00d.mockapi.io/interceptly/api/user'),
+        'https://69b6e039583f543fbd9ec00d.mockapi.io/interceptly/api/user',
+      ),
       headers: {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',

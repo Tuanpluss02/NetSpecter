@@ -16,7 +16,9 @@ class CurlGenerator {
     }
 
     final body = record.requestBodyPreview;
-    if (body != null && body.isNotEmpty && !BodyDecodeService.isPlaceholder(body)) {
+    if (body != null &&
+        body.isNotEmpty &&
+        !BodyDecodeService.isPlaceholder(body)) {
       buffer.write(" --data-raw '${_escapeShell(body)}'");
     }
 

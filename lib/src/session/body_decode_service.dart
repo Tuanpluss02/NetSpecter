@@ -24,8 +24,7 @@ class BodyDecodeService {
   ///
   /// Use this instead of `body.startsWith('[')` to avoid false-positives on
   /// legitimate JSON array bodies like `[{"id":1}]`.
-  static bool isPlaceholder(String body) =>
-      body.startsWith(_placeholderPrefix);
+  static bool isPlaceholder(String body) => body.startsWith(_placeholderPrefix);
 
   /// Decodes [bytes] to a UTF-8 string, or returns a binary placeholder.
   ///

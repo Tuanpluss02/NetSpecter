@@ -61,8 +61,8 @@ class DetailTabsBuilder {
           isPending
               ? 'Loading'
               : isErrorWithoutStatus
-                  ? 'Error'
-                  : '${record.statusCode}',
+              ? 'Error'
+              : '${record.statusCode}',
           DetailSection.overviewStatus,
         ),
         const SizedBox(height: 16),
@@ -120,17 +120,11 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Request Headers'),
-        _buildJsonBox(
-          record.requestHeaders,
-          DetailSection.requestHeaders,
-        ),
+        _buildJsonBox(record.requestHeaders, DetailSection.requestHeaders),
         const SizedBox(height: 24),
         if (hasQueryParams) ...[
           _buildSectionHeader('Query Parameters'),
-          _buildJsonBox(
-            uri.queryParameters,
-            DetailSection.queryParams,
-          ),
+          _buildJsonBox(uri.queryParameters, DetailSection.queryParams),
           const SizedBox(height: 24),
         ],
         _buildSectionHeader('Request Body', color: InterceptlyTheme.indigo400),
@@ -161,8 +155,9 @@ class DetailTabsBuilder {
             const SizedBox(height: 12),
             Text(
               'Waiting for response...',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted),
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: InterceptlyTheme.textMuted,
+              ),
             ),
           ],
         ),
@@ -186,8 +181,9 @@ class DetailTabsBuilder {
               record.errorMessage ??
                   'Request failed before receiving a response.',
               textAlign: TextAlign.center,
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted),
+              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                color: InterceptlyTheme.textMuted,
+              ),
             ),
           ],
         ),
@@ -198,10 +194,7 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Response Headers'),
-        _buildJsonBox(
-          record.responseHeaders,
-          DetailSection.responseHeaders,
-        ),
+        _buildJsonBox(record.responseHeaders, DetailSection.responseHeaders),
         const SizedBox(height: 24),
         _buildSectionHeader('Response Body', color: InterceptlyTheme.green400),
         _buildBodyPreviewSection(
@@ -219,8 +212,9 @@ class DetailTabsBuilder {
       return Center(
         child: Text(
           'No errors for this request.',
-          style: InterceptlyTheme.typography.bodyMediumRegular
-              .copyWith(color: InterceptlyTheme.textMuted),
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
         ),
       );
     }
@@ -234,16 +228,10 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
       children: [
         _buildSectionHeader('Error Summary', color: InterceptlyTheme.yellow400),
-        _buildJsonBox(
-          shortError,
-          DetailSection.errorType,
-        ),
+        _buildJsonBox(shortError, DetailSection.errorType),
         const SizedBox(height: 24),
         _buildSectionHeader('Error Type', color: InterceptlyTheme.yellow400),
-        _buildJsonBox(
-          record.errorType ?? 'None',
-          DetailSection.errorType,
-        ),
+        _buildJsonBox(record.errorType ?? 'None', DetailSection.errorType),
         const SizedBox(height: 24),
         _buildSectionHeader('Error Message', color: InterceptlyTheme.yellow400),
         _buildJsonBox(
@@ -260,9 +248,13 @@ class DetailTabsBuilder {
 
     if (messages.isEmpty) {
       return Center(
-          child: Text('No WebSocket messages captured.',
-              style: InterceptlyTheme.typography.bodyMediumRegular
-                  .copyWith(color: InterceptlyTheme.textMuted)));
+        child: Text(
+          'No WebSocket messages captured.',
+          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+            color: InterceptlyTheme.textMuted,
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -285,12 +277,14 @@ class DetailTabsBuilder {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 2.0),
+                    horizontal: 8.0,
+                    vertical: 2.0,
+                  ),
                   decoration: BoxDecoration(
                     color: InterceptlyTheme.green500.withValues(alpha: 0.1),
                     border: Border.all(
-                        color:
-                            InterceptlyTheme.green500.withValues(alpha: 0.2)),
+                      color: InterceptlyTheme.green500.withValues(alpha: 0.2),
+                    ),
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                   child: Text(
@@ -306,8 +300,9 @@ class DetailTabsBuilder {
 
         final msg = messages[index - 1];
         final isOut = msg['type'] == 'out';
-        final iconColor =
-            isOut ? InterceptlyTheme.green400 : InterceptlyTheme.blue400;
+        final iconColor = isOut
+            ? InterceptlyTheme.green400
+            : InterceptlyTheme.blue400;
         final icon = isOut ? Icons.call_made : Icons.call_received;
         final bgColor = isOut
             ? InterceptlyTheme.green500.withValues(alpha: 0.1)
@@ -318,23 +313,21 @@ class DetailTabsBuilder {
           margin: const EdgeInsets.only(bottom: 12.0),
           decoration: BoxDecoration(
             color: InterceptlyTheme.surfaceContainer,
-            border: Border.all(
-              color: InterceptlyTheme.dividerSubtle,
-            ),
+            border: Border.all(color: InterceptlyTheme.dividerSubtle),
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
                 decoration: BoxDecoration(
                   color: bgColor,
                   border: Border(
-                    bottom: BorderSide(
-                      color: InterceptlyTheme.dividerSubtle,
-                    ),
+                    bottom: BorderSide(color: InterceptlyTheme.dividerSubtle),
                   ),
                 ),
                 child: Row(
@@ -343,19 +336,17 @@ class DetailTabsBuilder {
                     const SizedBox(width: 8),
                     Text(
                       label,
-                      style:
-                          InterceptlyTheme.typography.labelSmallMedium.copyWith(
-                        color: iconColor,
-                      ),
+                      style: InterceptlyTheme.typography.labelSmallMedium
+                          .copyWith(color: iconColor),
                     ),
                     const Spacer(),
                     Text(
                       msg['time'] ?? '',
                       style: InterceptlyTheme.typography.bodyMediumRegular
                           .copyWith(
-                        fontSize: 10,
-                        color: InterceptlyTheme.textMuted,
-                      ),
+                            fontSize: 10,
+                            color: InterceptlyTheme.textMuted,
+                          ),
                     ),
                   ],
                 ),
@@ -380,7 +371,8 @@ class DetailTabsBuilder {
     DetailSection section, {
     TextStyle? valueStyle,
   }) {
-    final baseStyle = valueStyle ??
+    final baseStyle =
+        valueStyle ??
         InterceptlyTheme.typography.bodyMediumRegular.copyWith(
           fontSize: 12,
           color: InterceptlyTheme.textSecondary,
@@ -397,9 +389,7 @@ class DetailTabsBuilder {
           activeGlobalIndex,
           baseStyle.color ?? InterceptlyTheme.textSecondary,
         );
-        valueWidget = Text.rich(
-          TextSpan(style: baseStyle, children: spans),
-        );
+        valueWidget = Text.rich(TextSpan(style: baseStyle, children: spans));
       } else {
         valueWidget = Text(value, style: baseStyle);
       }
@@ -484,9 +474,7 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: InterceptlyTheme.surfaceContainer,
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -515,9 +503,7 @@ class DetailTabsBuilder {
     }
 
     if (ct.contains('application/graphql')) {
-      return {
-        'query': bodyPreview,
-      };
+      return {'query': bodyPreview};
     }
 
     final parsed = tryParseJson(bodyPreview);
@@ -568,8 +554,9 @@ class DetailTabsBuilder {
         final payload = trimmed.substring(8);
         final idx = payload.indexOf('=');
         if (idx > 0) {
-          fields[payload.substring(0, idx).trim()] =
-              payload.substring(idx + 1).trim();
+          fields[payload.substring(0, idx).trim()] = payload
+              .substring(idx + 1)
+              .trim();
         } else {
           rawLines.add(trimmed);
         }
@@ -644,7 +631,6 @@ class DetailTabsBuilder {
     return int.tryParse(m.group(1)!);
   }
 
-
   String? _buildEncodingLabel(Map<String, String> headers) {
     final encoding = _headerValue(headers, 'content-encoding');
     if (encoding == null || encoding.trim().isEmpty) return null;
@@ -672,10 +658,7 @@ class DetailTabsBuilder {
     );
   }
 
-  Widget _buildJsonBox(
-    dynamic data,
-    DetailSection section,
-  ) {
+  Widget _buildJsonBox(dynamic data, DetailSection section) {
     int matchOffset = matches.indexWhere((m) => m.section == section);
     if (matchOffset < 0) matchOffset = 0;
 
@@ -684,9 +667,7 @@ class DetailTabsBuilder {
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: InterceptlyTheme.surfaceContainer,
-        border: Border.all(
-          color: InterceptlyTheme.dividerSubtle,
-        ),
+        border: Border.all(color: InterceptlyTheme.dividerSubtle),
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: JsonViewer(

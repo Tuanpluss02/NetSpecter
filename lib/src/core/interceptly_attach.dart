@@ -85,15 +85,20 @@ void _pushInspector({
 }) {
   if (_state.inspectorIsOpen) return;
 
-  final navigator = nav ??
-      (context != null ? Navigator.maybeOf(context, rootNavigator: true) : null);
+  final navigator =
+      nav ??
+      (context != null
+          ? Navigator.maybeOf(context, rootNavigator: true)
+          : null);
   if (navigator == null) return;
 
   _state.inspectorIsOpen = true;
   navigator
-      .push<void>(MaterialPageRoute<void>(
-        builder: (_) => InterceptlyScreen(session: session),
-      ))
+      .push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => InterceptlyScreen(session: session),
+        ),
+      )
       .whenComplete(() => _state.inspectorIsOpen = false);
 }
 
@@ -113,10 +118,12 @@ void _tryInsertOverlays([int attempt = 0]) {
   }
 
   final triggers = _state.config?.triggers ?? {};
-  if (triggers.contains(InspectorTrigger.floatingButton) && _state.fabEntry == null) {
+  if (triggers.contains(InspectorTrigger.floatingButton) &&
+      _state.fabEntry == null) {
     _insertFab(overlay);
   }
-  if (triggers.contains(InspectorTrigger.longPress) && _state.longPressEntry == null) {
+  if (triggers.contains(InspectorTrigger.longPress) &&
+      _state.longPressEntry == null) {
     _insertLongPressOverlay(overlay);
   }
 }
@@ -125,8 +132,13 @@ void _insertFab(OverlayState overlay) {
   final config = _state.config ?? const InterceptlyConfig();
   _state.fabEntry = OverlayEntry(
     builder: (context) {
-      final fabChild = config.fabChild ??
-          const Icon(Icons.bug_report, size: 20, color: InterceptlyGlobalColor.white);
+      final fabChild =
+          config.fabChild ??
+          const Icon(
+            Icons.bug_report,
+            size: 20,
+            color: InterceptlyGlobalColor.white,
+          );
       final mq = MediaQuery.of(context);
       return Positioned.fill(
         child: IgnorePointer(
@@ -167,9 +179,11 @@ void _insertLongPressOverlay(OverlayState overlay) {
         gestures: {
           LongPressGestureRecognizer:
               GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-            () => LongPressGestureRecognizer(duration: config.longPressDuration),
-            (instance) => instance.onLongPress = _openInspector,
-          ),
+                () => LongPressGestureRecognizer(
+                  duration: config.longPressDuration,
+                ),
+                (instance) => instance.onLongPress = _openInspector,
+              ),
         },
         child: const SizedBox.expand(),
       ),
@@ -185,19 +199,19 @@ void _insertLongPressOverlay(OverlayState overlay) {
 void _startShakeListener() {
   final config = _state.config ?? const InterceptlyConfig();
   try {
-    _state.shakeSub = userAccelerometerEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
-    ).listen(
-      (event) {
-        final magnitude =
-            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        if (magnitude < config.shakeThreshold) return;
-        final now = DateTime.now();
-        if (now.difference(_state.lastShake) < config.shakeMinInterval) return;
-        _state.lastShake = now;
-        _openInspector();
-      },
-      onError: (_) {},
-    );
+    _state.shakeSub =
+        userAccelerometerEventStream(
+          samplingPeriod: SensorInterval.uiInterval,
+        ).listen((event) {
+          final magnitude = sqrt(
+            event.x * event.x + event.y * event.y + event.z * event.z,
+          );
+          if (magnitude < config.shakeThreshold) return;
+          final now = DateTime.now();
+          if (now.difference(_state.lastShake) < config.shakeMinInterval)
+            return;
+          _state.lastShake = now;
+          _openInspector();
+        }, onError: (_) {});
   } catch (_) {}
 }

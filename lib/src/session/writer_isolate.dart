@@ -163,11 +163,7 @@ Future<void> _isolateEntry(_InitMessage init) async {
 
   await for (final message in receivePort) {
     if (message is _WriteMessage) {
-      final entry = await _processCapture(
-        message.capture,
-        bodyStore,
-        settings,
-      );
+      final entry = await _processCapture(message.capture, bodyStore, settings);
       init.replyPort.send(entry);
     } else if (message is _ClearMessage) {
       await bodyStore.resetFile(init.tempDirPath);
@@ -207,7 +203,8 @@ Future<IndexEntry> _processCapture(
   if (!useFile) {
     inlineReq = _maybeTruncate(reqRaw, maxBody, previewLen);
     inlineRes = _maybeTruncate(resRaw, maxBody, previewLen);
-    isTruncated = (reqRaw != null && reqRaw.length > maxBody) ||
+    isTruncated =
+        (reqRaw != null && reqRaw.length > maxBody) ||
         (resRaw != null && resRaw.length > maxBody);
   } else {
     final packed = _packBodies(reqRaw, resRaw, maxBody, previewLen);
@@ -246,7 +243,9 @@ Uint8List? _maybeTruncate(Uint8List? bytes, int maxBytes, int previewLen) {
   if (bytes == null || bytes.isEmpty) return null;
   if (bytes.length <= maxBytes) return bytes;
   return bytes.sublist(
-      0, previewLen < bytes.length ? previewLen : bytes.length);
+    0,
+    previewLen < bytes.length ? previewLen : bytes.length,
+  );
 }
 
 class _PackedBodies {
@@ -267,7 +266,9 @@ _PackedBodies _packBodies(
     if (bytes.length <= maxBody) return bytes;
     truncated = true;
     return bytes.sublist(
-        0, previewLen < bytes.length ? previewLen : bytes.length);
+      0,
+      previewLen < bytes.length ? previewLen : bytes.length,
+    );
   }
 
   final reqData = req != null && req.isNotEmpty ? truncate(req) : null;
@@ -281,5 +282,7 @@ _PackedBodies _packBodies(
 
   final encoded = utf8.encode(jsonEncode(map));
   return _PackedBodies(
-      bytes: Uint8List.fromList(encoded), truncated: truncated);
+    bytes: Uint8List.fromList(encoded),
+    truncated: truncated,
+  );
 }

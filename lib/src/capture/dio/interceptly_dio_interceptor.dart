@@ -12,7 +12,7 @@ import '../../session/inspector_session.dart';
 class InterceptlyDioInterceptor extends Interceptor {
   /// Creates an interceptor backed by [session] or the shared singleton.
   InterceptlyDioInterceptor([InspectorSession? session])
-      : session = session ?? InspectorSession.instance;
+    : session = session ?? InspectorSession.instance;
 
   /// Session that stores all captured events.
   final InspectorSession session;
@@ -23,7 +23,9 @@ class InterceptlyDioInterceptor extends Interceptor {
   /// Captures a pending request and applies pre-request simulation.
   @override
   Future<void> onRequest(
-      RequestOptions options, RequestInterceptorHandler handler) async {
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final startedAt = DateTime.now();
     final id = RequestId.generate();
 
@@ -36,9 +38,7 @@ class InterceptlyDioInterceptor extends Interceptor {
       method: options.method,
       url: options.uri.toString(),
       timestamp: startedAt,
-      requestHeaders: options.headers.map(
-        (k, v) => MapEntry(k, v.toString()),
-      ),
+      requestHeaders: options.headers.map((k, v) => MapEntry(k, v.toString())),
       requestBodyBytes: reqBytes,
       requestContentType: options.contentType,
     );
@@ -79,10 +79,7 @@ class InterceptlyDioInterceptor extends Interceptor {
       downloadBytes: resBytes?.length ?? 0,
     );
 
-    _record(
-      options: response.requestOptions,
-      response: response,
-    );
+    _record(options: response.requestOptions, response: response);
     handler.next(response);
   }
 
@@ -117,12 +114,9 @@ class InterceptlyDioInterceptor extends Interceptor {
       id: id,
       method: options.method,
       url: options.uri.toString(),
-      requestHeaders: options.headers.map(
-        (k, v) => MapEntry(k, v.toString()),
-      ),
-      responseHeaders: response?.headers.map.map(
-            (k, v) => MapEntry(k, v.join(', ')),
-          ) ??
+      requestHeaders: options.headers.map((k, v) => MapEntry(k, v.toString())),
+      responseHeaders:
+          response?.headers.map.map((k, v) => MapEntry(k, v.join(', '))) ??
           const {},
       statusCode: response?.statusCode ?? 0,
       durationMs: durationMs,

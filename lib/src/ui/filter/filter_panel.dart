@@ -55,9 +55,7 @@ class _FilterPanelState extends State<FilterPanel> {
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: InterceptlyTheme.surface,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -66,9 +64,7 @@ class _FilterPanelState extends State<FilterPanel> {
             padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
             decoration: BoxDecoration(
               color: InterceptlyTheme.surface,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               border: Border(
                 bottom: BorderSide(color: InterceptlyTheme.dividerSubtle),
               ),
@@ -91,19 +87,15 @@ class _FilterPanelState extends State<FilterPanel> {
                     children: [
                       Text(
                         'Filter Requests',
-                        style:
-                            InterceptlyTheme.typography.titleSmallBold.copyWith(
-                          color: InterceptlyTheme.textPrimary,
-                        ),
+                        style: InterceptlyTheme.typography.titleSmallBold
+                            .copyWith(color: InterceptlyTheme.textPrimary),
                       ),
                       TextButton(
                         onPressed: _resetFilters,
                         child: Text(
                           'Reset',
                           style: InterceptlyTheme.typography.titleMediumRegular
-                              .copyWith(
-                            color: InterceptlyTheme.indigo500,
-                          ),
+                              .copyWith(color: InterceptlyTheme.indigo500),
                         ),
                       ),
                     ],
@@ -265,10 +257,10 @@ class _FilterPanelState extends State<FilterPanel> {
         final isSelected = key == 'include2xx'
             ? include2xx
             : key == 'include3xx'
-                ? include3xx
-                : key == 'include4xx'
-                    ? include4xx
-                    : include5xx;
+            ? include3xx
+            : key == 'include4xx'
+            ? include4xx
+            : include5xx;
         final baseColor = statusColors[label]!;
 
         return GestureDetector(
@@ -318,8 +310,9 @@ class _FilterPanelState extends State<FilterPanel> {
                 Text(
                   label,
                   style: TextStyle(
-                    color:
-                        isSelected ? baseColor : InterceptlyTheme.textSecondary,
+                    color: isSelected
+                        ? baseColor
+                        : InterceptlyTheme.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -392,14 +385,15 @@ class _FilterPanelState extends State<FilterPanel> {
 
   void _applyFilters() {
     // All selected == no filter (empty set = show all).
-    final appliedMethods = selectedMethods.containsAll(_allMethods) &&
+    final appliedMethods =
+        selectedMethods.containsAll(_allMethods) &&
             selectedMethods.length == _allMethods.length
         ? <String>{}
         : selectedMethods;
     final appliedDomains =
         selectedDomains.length == widget.availableDomains.length
-            ? <String>{}
-            : selectedDomains;
+        ? <String>{}
+        : selectedDomains;
 
     final newFilter = RequestFilter(
       methods: appliedMethods,

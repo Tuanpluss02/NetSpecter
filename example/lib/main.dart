@@ -9,10 +9,7 @@ void main() {
   final appNavigatorKey = GlobalKey<NavigatorState>();
 
   runApp(
-    InterceptlyExampleApp(
-      clients: clients,
-      navigatorKey: appNavigatorKey,
-    ),
+    InterceptlyExampleApp(clients: clients, navigatorKey: appNavigatorKey),
   );
 
   Interceptly.attach(navigatorKey: appNavigatorKey);

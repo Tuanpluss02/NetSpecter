@@ -31,8 +31,9 @@ class _SelectionTopBar extends StatelessWidget {
           Expanded(
             child: Text(
               '$selectedCount selected',
-              style: InterceptlyTheme.typography.bodyMediumMedium
-                  .copyWith(color: colors.textPrimary),
+              style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
+                color: colors.textPrimary,
+              ),
             ),
           ),
         ],
@@ -119,11 +120,10 @@ class _ExportBar extends StatelessWidget {
                   )
                 : const Icon(Icons.upload_file, size: 18),
             label: Text(
-              isExporting
-                  ? 'Exporting…'
-                  : 'Export $selectedCount to Postman',
-              style: InterceptlyTheme.typography.bodyMediumMedium
-                  .copyWith(color: colors.textOnAction),
+              isExporting ? 'Exporting…' : 'Export $selectedCount to Postman',
+              style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
+                color: colors.textOnAction,
+              ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.actionPrimary,
@@ -132,8 +132,7 @@ class _ExportBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 14),
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(InterceptlyTheme.radius.md),
+                borderRadius: BorderRadius.circular(InterceptlyTheme.radius.md),
               ),
             ),
           ),
@@ -200,8 +199,8 @@ class _SelectableGroupHeader extends StatelessWidget {
               color: allSelected
                   ? colors.actionPrimary
                   : someSelected
-                      ? colors.actionPrimary.withValues(alpha: 0.3)
-                      : InterceptlyGlobalColor.transparent,
+                  ? colors.actionPrimary.withValues(alpha: 0.3)
+                  : InterceptlyGlobalColor.transparent,
               borderRadius: BorderRadius.circular(InterceptlyTheme.radius.sm),
               border: Border.all(
                 color: allSelected || someSelected
@@ -213,13 +212,12 @@ class _SelectableGroupHeader extends StatelessWidget {
             child: allSelected
                 ? Icon(Icons.check, size: 14, color: colors.textOnAction)
                 : someSelected
-                    ? Icon(Icons.remove, size: 14, color: colors.textOnAction)
-                    : null,
+                ? Icon(Icons.remove, size: 14, color: colors.textOnAction)
+                : null,
           ),
         ),
         onTap: onToggleExpand,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }

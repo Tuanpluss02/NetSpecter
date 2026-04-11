@@ -11,10 +11,7 @@ import '../widgets/toast_notification.dart';
 import 'custom_request_page.dart';
 
 class ReplayHandler {
-  const ReplayHandler({
-    required this.context,
-    required this.session,
-  });
+  const ReplayHandler({required this.context, required this.session});
 
   final BuildContext context;
   final InspectorSession session;
@@ -41,8 +38,10 @@ class ReplayHandler {
               ),
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.refresh, color: InterceptlyTheme.indigo500),
+              leading: const Icon(
+                Icons.refresh,
+                color: InterceptlyTheme.indigo500,
+              ),
               title: Text(
                 'Retry Request',
                 style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
@@ -56,8 +55,10 @@ class ReplayHandler {
             ),
             Divider(color: InterceptlyTheme.dividerSubtle, height: 1),
             ListTile(
-              leading: const Icon(Icons.edit_note,
-                  color: InterceptlyTheme.indigo500),
+              leading: const Icon(
+                Icons.edit_note,
+                color: InterceptlyTheme.indigo500,
+              ),
               title: Text(
                 'Duplicate & Edit',
                 style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
@@ -141,16 +142,20 @@ class ReplayHandler {
     }
 
     if (_isUnsupportedMethod(method)) {
-      ToastNotification.show('Unsupported method: $method',
-          contextHint: context);
+      ToastNotification.show(
+        'Unsupported method: $method',
+        contextHint: context,
+      );
       return;
     }
 
     final cleanedHeaders = _sanitizeReplayHeaders(headers);
 
     if (isBodyTruncated && body != null && body.isNotEmpty) {
-      ToastNotification.show('Warning: body may be truncated',
-          contextHint: context);
+      ToastNotification.show(
+        'Warning: body may be truncated',
+        contextHint: context,
+      );
     }
 
     final request = http.Request(method, uri);
@@ -175,8 +180,10 @@ class ReplayHandler {
       final streamed = await client.send(request);
       await streamed.stream.drain<void>();
       if (!context.mounted) return;
-      ToastNotification.show('Replay sent (${streamed.statusCode})',
-          contextHint: context);
+      ToastNotification.show(
+        'Replay sent (${streamed.statusCode})',
+        contextHint: context,
+      );
     } catch (e) {
       if (!context.mounted) return;
       ToastNotification.show('Replay failed: $e', contextHint: context);
