@@ -71,6 +71,18 @@ class DetailTabsBuilder {
           isPending ? 'loading…' : '${record.durationMs} ms',
           DetailSection.overviewDuration,
         ),
+        const SizedBox(height: 16),
+        _buildOverviewRow(
+          'Request size',
+          _formatBytes(record.requestSizeBytes),
+          DetailSection.overviewDuration,
+        ),
+        const SizedBox(height: 16),
+        _buildOverviewRow(
+          'Response size',
+          isPending ? 'loading…' : _formatBytes(record.responseSizeBytes),
+          DetailSection.overviewDuration,
+        ),
         if (record.hasError) ...[
           const SizedBox(height: 16),
           _buildOverviewRow(
@@ -674,5 +686,13 @@ class DetailTabsBuilder {
         activeGlobalIndex: activeGlobalIndex,
       ),
     );
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

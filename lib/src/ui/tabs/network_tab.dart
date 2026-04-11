@@ -199,10 +199,12 @@ class _NetworkTabState extends State<NetworkTab> {
       );
     }
 
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 88;
+
     return ListView.separated(
+      padding: EdgeInsets.fromLTRB(12, 10, 12, bottomInset),
       itemCount: entries.length,
-      separatorBuilder: (_, __) =>
-          Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final req = entries[index];
         return _buildRequestItem(
@@ -235,7 +237,11 @@ class _NetworkTabState extends State<NetworkTab> {
       );
     }
 
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 88;
+    const groupItemsPadding = EdgeInsets.fromLTRB(14, 12, 14, 10);
+
     return ListView.builder(
+      padding: EdgeInsets.fromLTRB(0, 10, 0, bottomInset),
       itemCount: groups.length,
       itemBuilder: (context, groupIndex) {
         final group = groups[groupIndex];
@@ -267,28 +273,36 @@ class _NetworkTabState extends State<NetworkTab> {
                 ),
               ),
             if (group.isExpanded)
-              ...group.requests.asMap().entries.map((entry) {
-                final record = entry.value;
-                final isLast = entry.key == group.requests.length - 1;
-                return Column(
+              Padding(
+                padding: groupItemsPadding,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildRequestItem(
-                      context: context,
-                      entry: record,
-                      onTapNavigate: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => RequestDetailPage(
+                    ...group.requests.asMap().entries.map((entry) {
+                      final record = entry.value;
+                      final isLast = entry.key == group.requests.length - 1;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildRequestItem(
+                            context: context,
                             entry: record,
-                            session: widget.session,
+                            onTapNavigate: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RequestDetailPage(
+                                  entry: record,
+                                  session: widget.session,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                    if (!isLast)
-                      Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
+                          if (!isLast) const SizedBox(height: 8),
+                        ],
+                      );
+                    }),
                   ],
-                );
-              }),
+                ),
+              ),
             Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
           ],
         );
@@ -331,6 +345,7 @@ class _NetworkTabState extends State<NetworkTab> {
       status: entry.statusCode,
       hasError: entry.hasError,
       isPending: isPending,
+      responseSizeBytes: entry.responseSizeBytes,
       isSelectionMode: _isSelectionMode,
       isSelected: _selectedIds.contains(entry.id),
       onLongPress: () => _enterSelectionMode(entry.id),

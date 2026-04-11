@@ -80,6 +80,7 @@ class _InterceptlySearchFieldState extends State<InterceptlySearchField> {
       onSubmitted: widget.onSubmitted,
       decoration: InputDecoration(
         hintText: widget.hintText,
+        hintMaxLines: 2,
         hintStyle: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
           color: InterceptlyTheme.textMuted,
         ),

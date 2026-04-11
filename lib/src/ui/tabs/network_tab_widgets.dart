@@ -62,7 +62,7 @@ class _SearchFilterBar extends StatelessWidget {
           Expanded(
             child: InterceptlySearchField(
               controller: controller,
-              hintText: 'Search URL, headers, body…',
+              hintText: 'Search URL, headers, body',
               onChanged: onChanged,
             ),
           ),

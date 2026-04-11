@@ -253,6 +253,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                   children: [
                     TabBar(
                       controller: _tabController,
+                      labelStyle: InterceptlyTheme.typography.labelMediumMedium,
+                      unselectedLabelStyle:
+                          InterceptlyTheme.typography.labelMediumMedium,
                       labelColor: InterceptlyTheme.indigo400,
                       unselectedLabelColor: InterceptlyTheme.textMuted,
                       indicatorColor: InterceptlyTheme.indigo500,
@@ -623,7 +626,12 @@ class _CustomRequestPageState extends State<CustomRequestPage>
               ),
               TextButton.icon(
                 onPressed: _formatJsonBody,
-                label: const Text('Format JSON'),
+                label: Text(
+                  'Format JSON',
+                  style: InterceptlyTheme.typography.labelMediumMedium.copyWith(
+                    color: InterceptlyTheme.indigo400,
+                  ),
+                ),
               ),
             ],
           ),
@@ -656,7 +664,6 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                         InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       color: InterceptlyTheme.textPrimary,
                       fontSize: 13,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
@@ -697,7 +704,6 @@ class _CustomRequestPageState extends State<CustomRequestPage>
                         InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                       color: InterceptlyTheme.textMuted,
                       fontSize: 13,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
