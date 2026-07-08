@@ -319,6 +319,7 @@ IndexEntry _entry({
     responseSizeBytes: 0,
     timestamp: DateTime(2026),
     hasError: errorMessage != null,
+    isBodyTruncated: false,
     bodyLocation: BodyLocation.memory,
     errorMessage: errorMessage,
   );
