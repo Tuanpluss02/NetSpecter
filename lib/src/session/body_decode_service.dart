@@ -29,11 +29,38 @@ class BodyDecodeService {
   /// Decodes [bytes] to a UTF-8 string, or returns a binary placeholder.
   ///
   /// Returns `null` when [bytes] is null or empty.
+  ///
+  /// For payloads above [computeThreshold] the UTF-8 decode is pushed to a
+  /// background isolate to avoid blocking the main thread. Smaller payloads
+  /// are decoded inline because isolate spawn overhead dwarfs the savings.
+  static Future<String?> decodeAsync(
+    Uint8List? bytes,
+    String? contentType,
+  ) async {
+    if (bytes == null || bytes.isEmpty) return null;
+    if (isBinary(contentType)) {
+      return '$_placeholderPrefix[binary: ${bytes.length} bytes]';
+    }
+    if (bytes.length > computeThreshold) {
+      try {
+        return await compute(_utf8DecodeOnly, bytes);
+      } catch (_) {
+        // Fall through to inline decode below.
+      }
+    }
+    return _decodeInline(bytes);
+  }
+
+  /// Synchronous variant kept for callers that can't await (init paths).
   static String? decode(Uint8List? bytes, String? contentType) {
     if (bytes == null || bytes.isEmpty) return null;
     if (isBinary(contentType)) {
       return '$_placeholderPrefix[binary: ${bytes.length} bytes]';
     }
+    return _decodeInline(bytes);
+  }
+
+  static String? _decodeInline(Uint8List bytes) {
     try {
       return utf8.decode(bytes);
     } catch (_) {
@@ -111,4 +138,10 @@ class BodyDecodeService {
       return '$_placeholderPrefix[binary: ${bytes.length} bytes]';
     }
   }
+}
+
+/// Standalone helper so [compute] can spawn the isolate with a top-level
+/// function (it cannot capture instance methods).
+String? _utf8DecodeOnly(Uint8List bytes) {
+  return BodyDecodeService.tryUtf8(bytes);
 }

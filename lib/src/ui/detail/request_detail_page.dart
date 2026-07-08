@@ -63,8 +63,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
       if (mounted) {
         setState(() {
           _cachedRecord = record;
-          _recomputeMatches();
         });
+        _recomputeMatchesAsync();
         // Pre-build remaining tabs on the next frame after initial render
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -123,8 +123,8 @@ class _RequestDetailPageState extends State<RequestDetailPage>
     if (!mounted || generation != _detailLoadGeneration) return;
     setState(() {
       _cachedRecord = record;
-      _recomputeMatches();
     });
+    _recomputeMatchesAsync();
   }
 
   void _onTabChanged() {
@@ -136,6 +136,37 @@ class _RequestDetailPageState extends State<RequestDetailPage>
         });
       }
     }
+  }
+
+  /// Async recomputation that runs on a background isolate. Falls back to the
+  /// synchronous path if the snapshot round-trip fails (defensive — keeps
+  /// search functional even if the payload has unusual types).
+  ///
+  /// Generation counter prevents late-arriving completions from clobbering
+  /// the latest query.
+  int _matchesGeneration = 0;
+
+  Future<void> _recomputeMatchesAsync() async {
+    final record = _cachedRecord;
+    if (record == null) {
+      _cachedMatches = const [];
+      _cachedQuery = _query;
+      return;
+    }
+    final isWs = widget.entry.method == 'WS';
+    final gen = ++_matchesGeneration;
+    List<DetailMatch> next;
+    try {
+      next = await computeMatchesAsync(record, _query, isWs);
+    } catch (_) {
+      next = computeMatches(record, _query, isWs, _tryParseJson);
+    }
+    if (!mounted || gen != _matchesGeneration) return;
+    setState(() {
+      _cachedMatches = next;
+      _cachedQuery = _query;
+      _currentMatchIndex = 0;
+    });
   }
 
   void _recomputeMatches() {
@@ -310,6 +341,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
                                 _query = value.trim();
                                 _currentMatchIndex = 0;
                               });
+                              _recomputeMatchesAsync();
                             },
                           ),
                         ),

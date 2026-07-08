@@ -35,18 +35,14 @@ class _InterceptlyScreenState extends State<InterceptlyScreen> {
   }
 
   void _showFilterPanel() {
-    showModalBottomSheet(
+    FilterPanel.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: InterceptlyTheme.surface,
-      builder: (context) => FilterPanel(
-        currentFilter: _filter,
-        availableDomains: widget.session.availableDomains,
-        onFilterChanged: (newFilter) {
-          setState(() => _filter = newFilter);
-          widget.session.applyFilter(newFilter);
-        },
-      ),
+      currentFilter: _filter,
+      availableDomains: widget.session.availableDomains,
+      onFilterChanged: (newFilter) {
+        setState(() => _filter = newFilter);
+        widget.session.applyFilter(newFilter);
+      },
     );
   }
 

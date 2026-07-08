@@ -6,8 +6,7 @@ class InterceptlyTheme {
   static const String fontFamily = 'JetBrainsMono';
   static const String fontPackage = 'interceptly';
 
-  static final ValueNotifier<Brightness> brightnessNotifier =
-      ValueNotifier<Brightness>(
+  static final ValueNotifier<Brightness> brightnessNotifier = ValueNotifier<Brightness>(
     WidgetsBinding.instance.platformDispatcher.platformBrightness,
   );
 
@@ -179,6 +178,18 @@ class InterceptlyTheme {
           border: red500.withValues(alpha: 0.3),
           text: red400,
         );
+      case 'PUT':
+        return MethodStyle(
+          bg: InterceptlyGlobalColor.orange.withValues(alpha: 0.15),
+          border: InterceptlyGlobalColor.orange.withValues(alpha: 0.3),
+          text: InterceptlyGlobalColor.orange,
+        );
+      case 'PATCH':
+        return MethodStyle(
+          bg: purple500.withValues(alpha: 0.15),
+          border: purple500.withValues(alpha: 0.3),
+          text: purple400,
+        );
       case 'WS':
         return MethodStyle(
           bg: purple500.withValues(alpha: 0.15),
@@ -199,6 +210,12 @@ class InterceptlyTheme {
       return const StatusStyle(
         bg: green500,
         text: InterceptlyGlobalColor.black,
+      );
+    }
+    if (status >= 300 && status < 400) {
+      return const StatusStyle(
+        bg: blue500,
+        text: InterceptlyGlobalColor.white,
       );
     }
     if (status >= 400 && status < 500) {

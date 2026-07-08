@@ -95,7 +95,6 @@ class JsonViewer extends StatefulWidget {
   ///
   /// [matchOffset] is the global index of the first match within [text].
   /// [activeGlobalIndex] is the currently selected match (painted orange).
-  /// All other matches are painted with the soft highlight colour.
   static List<TextSpan> buildHighlightedSpans(
     String text,
     String lowerQuery,
@@ -166,6 +165,14 @@ class _JsonViewerState extends State<JsonViewer> {
   static const _highlightColor = InterceptlyGlobalColor.highlightStrong;
   static const _activeHighlightColor = InterceptlyGlobalColor.orange;
 
+  /// Cached subtree-match counts per node path, keyed by node instance.
+  /// Avoids re-walking the tree on every didUpdateWidget.
+  final Map<int, int> _subtreeMatchCache = <int, int>{};
+
+  /// Stable IDs assigned to each _JsonNode instance in build order. Used as
+  /// cache key so reordering children doesn't poison the cache.
+  int _nextNodeId = 1;
+
   void _copyToClipboard() {
     final formatted = JsonViewer.formatData(widget.data);
     Clipboard.setData(ClipboardData(text: formatted)).then((_) {
@@ -179,7 +186,7 @@ class _JsonViewerState extends State<JsonViewer> {
   Widget build(BuildContext context) {
     if (widget.data == null) {
       return Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
         child: Text(
           'No Data',
           style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
@@ -211,6 +218,9 @@ class _JsonViewerState extends State<JsonViewer> {
                   searchQuery: widget.searchQuery,
                   matchOffset: widget.matchOffset,
                   activeGlobalIndex: widget.activeGlobalIndex,
+                  subtreeMatchCache: _subtreeMatchCache,
+                  nodeId: _nextNodeId++,
+                  nextNodeId: () => _nextNodeId++,
                 ),
               ),
             ),
@@ -253,6 +263,15 @@ class _JsonNode extends StatefulWidget {
   final int matchOffset;
   final int? activeGlobalIndex;
 
+  /// Cache passed down from the root viewer so sibling subtrees share state.
+  final Map<int, int> subtreeMatchCache;
+
+  /// Stable id for this node instance.
+  final int nodeId;
+
+  /// Allocator for children to claim their own stable ids.
+  final int Function() nextNodeId;
+
   const _JsonNode({
     this.nodeKey,
     required this.value,
@@ -261,6 +280,9 @@ class _JsonNode extends StatefulWidget {
     this.searchQuery,
     this.matchOffset = 0,
     this.activeGlobalIndex,
+    required this.subtreeMatchCache,
+    required this.nodeId,
+    required this.nextNodeId,
   });
 
   @override
@@ -276,7 +298,6 @@ class _JsonNodeState extends State<_JsonNode> {
   void initState() {
     super.initState();
     _isExpanded = _shouldExpandByDefault(widget.value);
-    // Expand if the active match is inside this subtree on first build
     if (!_isExpanded && _subtreeContainsActiveMatch()) {
       _isExpanded = true;
     }
@@ -285,16 +306,33 @@ class _JsonNodeState extends State<_JsonNode> {
   @override
   void didUpdateWidget(covariant _JsonNode oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reset user toggle and scroll key when search navigation changes
     if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
         widget.searchQuery != oldWidget.searchQuery) {
       _userToggled = false;
       _activeScrollKey = null;
     }
-    // Auto-expand if the active match is inside this subtree
     if (!_userToggled && !_isExpanded && _subtreeContainsActiveMatch()) {
       _isExpanded = true;
     }
+  }
+
+  /// Returns the total number of search matches within this node's subtree
+  /// (key + value + descendants). Caches the result for the lifetime of the
+  /// current (data, query) pair so we don't re-walk a 5000-node tree on
+  /// every rebuild.
+  int _cachedTotalMatchesInNode(String q) {
+    final cacheKey = widget.nodeId;
+    final cached = widget.subtreeMatchCache[cacheKey];
+    if (cached != null) {
+      return cached;
+    }
+    int total = 0;
+    if (widget.nodeKey != null) {
+      total += JsonViewer._countIn(widget.nodeKey!, q);
+    }
+    total += JsonViewer.countMatches(widget.value, q);
+    widget.subtreeMatchCache[cacheKey] = total;
+    return total;
   }
 
   bool _subtreeContainsActiveMatch() {
@@ -303,23 +341,10 @@ class _JsonNodeState extends State<_JsonNode> {
     final q = widget.searchQuery;
     if (q == null || q.isEmpty) return false;
 
-    final totalInSubtree = _totalMatchesInNode();
+    final total = _cachedTotalMatchesInNode(q);
     final start = widget.matchOffset;
-    final end = start + totalInSubtree;
+    final end = start + total;
     return activeIdx >= start && activeIdx < end;
-  }
-
-  int _totalMatchesInNode() {
-    final q = widget.searchQuery;
-    if (q == null || q.isEmpty) return 0;
-    int total = 0;
-    // Count key matches
-    if (widget.nodeKey != null) {
-      total += JsonViewer._countIn(widget.nodeKey!, q.toLowerCase());
-    }
-    // Count value matches
-    total += JsonViewer.countMatches(widget.value, q);
-    return total;
   }
 
   static bool _shouldExpandByDefault(dynamic value) {
@@ -340,10 +365,8 @@ class _JsonNodeState extends State<_JsonNode> {
     final query = widget.searchQuery?.toLowerCase().trim();
     final hasQuery = query != null && query.isNotEmpty;
 
-    // Match offset for this node's key
     int currentOffset = widget.matchOffset;
 
-    // Build key span with highlighting
     TextSpan keyHtml;
     if (widget.nodeKey != null) {
       final keyText = '"${widget.nodeKey}"';
@@ -398,7 +421,6 @@ class _JsonNodeState extends State<_JsonNode> {
             ),
           );
 
-    // Leaf nodes
     if (widget.value == null) {
       return _buildLeafLine(
         keyHtml,
@@ -441,7 +463,6 @@ class _JsonNodeState extends State<_JsonNode> {
       );
     }
 
-    // Collection nodes
     if (widget.value is List) {
       final list = widget.value as List;
       if (list.isEmpty) {
@@ -519,10 +540,6 @@ class _JsonNodeState extends State<_JsonNode> {
         (s) =>
             s.style?.backgroundColor == _JsonViewerState._activeHighlightColor,
       );
-      // Also check if the active match landed in this node's key span
-      // (key matches are counted before value matches, so matchOffset is
-      // already past them — the key span carries the highlight but
-      // _buildLeafLine would otherwise miss it).
       final hasActiveMatchInKey = _spanHasActiveHighlight(keySpan);
       hasActiveMatch = hasActiveMatchInValue || hasActiveMatchInKey;
       valueSpan = TextSpan(children: spans);
@@ -593,7 +610,6 @@ class _JsonNodeState extends State<_JsonNode> {
     required Iterable<_ChildEntry> entries,
     required int valueMatchOffset,
   }) {
-    // Build children with correct match offsets
     List<Widget>? children;
     if (_isExpanded) {
       final query = widget.searchQuery;
@@ -607,10 +623,12 @@ class _JsonNodeState extends State<_JsonNode> {
           searchQuery: query,
           matchOffset: childOffset,
           activeGlobalIndex: widget.activeGlobalIndex,
+          subtreeMatchCache: widget.subtreeMatchCache,
+          nodeId: widget.nextNodeId(),
+          nextNodeId: widget.nextNodeId,
         );
         children.add(child);
 
-        // Advance offset by this child's total matches
         if (query != null && query.isNotEmpty) {
           if (entry.key != null) {
             childOffset += JsonViewer._countIn(
@@ -756,5 +774,5 @@ class _ChildEntry {
   final String? key;
   final dynamic value;
   final bool isLast;
-  const _ChildEntry({this.key, required this.value, required this.isLast});
+  const _ChildEntry({this.key, required this.value, this.isLast = false});
 }

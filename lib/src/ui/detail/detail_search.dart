@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:interceptly/src/ui/widgets/json_viewer.dart';
 
 import '../../model/request_record.dart';
@@ -24,6 +27,8 @@ enum DetailSection {
   errorMessage,
 }
 
+/// Synchronous variant — kept for backward compatibility with code paths that
+/// already run inside an isolate (it doesn't snapshot the record twice).
 List<DetailMatch> computeMatches(
   RequestRecord record,
   String query,
@@ -84,7 +89,6 @@ List<DetailMatch> computeMatches(
   }
 
   if (!isWs) {
-    // Request tab index 1
     final uri = Uri.tryParse(record.url);
     if (uri != null && uri.queryParameters.isNotEmpty) {
       addMatches(
@@ -104,7 +108,6 @@ List<DetailMatch> computeMatches(
       DetailSection.requestBody,
     );
 
-    // Response tab index 2
     addMatches(
       JsonViewer.countMatches(record.responseHeaders, query),
       2,
@@ -116,7 +119,6 @@ List<DetailMatch> computeMatches(
       DetailSection.responseBody,
     );
 
-    // Error tab index 3
     addMatches(
       JsonViewer.countMatches(record.errorType ?? 'None', query),
       3,
@@ -130,4 +132,211 @@ List<DetailMatch> computeMatches(
   }
 
   return matches;
+}
+
+/// Snapshot model passed into [compute] — `RequestRecord` contains `Map`s of
+/// only primitive types so a JSON snapshot is safe and cheap.
+RequestRecordSnapshot snapshotRecord(RequestRecord r) =>
+    RequestRecordSnapshot(
+      id: r.id,
+      method: r.method,
+      url: r.url,
+      statusCode: r.statusCode,
+      durationMs: r.durationMs,
+      requestSizeBytes: r.requestSizeBytes,
+      responseSizeBytes: r.responseSizeBytes,
+      timestampIso: r.timestamp.toIso8601String(),
+      isBodyTruncated: r.isBodyTruncated,
+      requestHeaders: r.requestHeaders,
+      responseHeaders: r.responseHeaders,
+      requestContentType: r.requestContentType,
+      responseContentType: r.responseContentType,
+      requestBodyPreview: r.requestBodyPreview,
+      responseBodyPreview: r.responseBodyPreview,
+      errorType: r.errorType,
+      errorMessage: r.errorMessage,
+    );
+
+/// Async variant of [computeMatches] that runs the heavy walk on a background
+/// isolate. The `tryParseJson` callback is approximated inside the isolate
+/// by a local helper that does `jsonDecode` directly.
+Future<List<DetailMatch>> computeMatchesAsync(
+  RequestRecord record,
+  String query,
+  bool isWs,
+) {
+  if (query.trim().isEmpty) {
+    return SynchronousFuture(const <DetailMatch>[]);
+  }
+  try {
+    final snapshot = snapshotRecord(record);
+    final reqJson = snapshot.requestBodyPreview == null
+        ? null
+        : jsonDecodeSafe(snapshot.requestBodyPreview!);
+    final resJson = snapshot.responseBodyPreview == null
+        ? null
+        : jsonDecodeSafe(snapshot.responseBodyPreview!);
+    return compute(
+      _computeMatchesIsolate,
+      _IsolateArgs(snapshot, query, isWs, reqJson, resJson),
+    );
+  } catch (_) {
+    return SynchronousFuture(computeMatches(record, query, isWs, _syncParseJson));
+  }
+}
+
+dynamic jsonDecodeSafe(String text) {
+  try {
+    return jsonDecode(text);
+  } catch (_) {
+    return text;
+  }
+}
+
+dynamic _syncParseJson(String? s) => s == null ? null : jsonDecodeSafe(s);
+
+class _IsolateArgs {
+  final RequestRecordSnapshot record;
+  final String query;
+  final bool isWs;
+  final dynamic requestBody;
+  final dynamic responseBody;
+  const _IsolateArgs(
+    this.record,
+    this.query,
+    this.isWs,
+    this.requestBody,
+    this.responseBody,
+  );
+}
+
+List<DetailMatch> _computeMatchesIsolate(_IsolateArgs args) {
+  final q = args.query.trim().toLowerCase();
+  if (q.isEmpty) return const [];
+  final matches = <DetailMatch>[];
+
+  int countOccurrences(String? text) {
+    if (text == null || text.isEmpty) return 0;
+    int c = 0;
+    int start = 0;
+    final lower = text.toLowerCase();
+    while (true) {
+      final idx = lower.indexOf(q, start);
+      if (idx < 0) break;
+      c++;
+      start = idx + q.length;
+    }
+    return c;
+  }
+
+  void addMatches(int count, int tabIndex, DetailSection section) {
+    for (int i = 0; i < count; i++) {
+      matches.add(DetailMatch(tabIndex: tabIndex, section: section));
+    }
+  }
+
+  final r = args.record;
+  addMatches(countOccurrences(r.url), 0, DetailSection.overviewUrl);
+  addMatches(countOccurrences(r.method), 0, DetailSection.overviewMethod);
+  addMatches(
+    countOccurrences(r.statusCode > 0 ? r.statusCode.toString() : 'N/A'),
+    0,
+    DetailSection.overviewStatus,
+  );
+  addMatches(
+    countOccurrences('${r.durationMs} ms'),
+    0,
+    DetailSection.overviewDuration,
+  );
+  addMatches(countOccurrences(r.timestampIso), 0, DetailSection.overviewTime);
+  if (r.isBodyTruncated) {
+    addMatches(
+      countOccurrences('Body truncated — response exceeded the size limit.'),
+      0,
+      DetailSection.overviewNote,
+    );
+  }
+
+  if (!args.isWs) {
+    final uri = Uri.tryParse(r.url);
+    if (uri != null && uri.queryParameters.isNotEmpty) {
+      addMatches(
+        JsonViewer.countMatches(uri.queryParameters, args.query),
+        1,
+        DetailSection.queryParams,
+      );
+    }
+    addMatches(
+      JsonViewer.countMatches(r.requestHeaders, args.query),
+      1,
+      DetailSection.requestHeaders,
+    );
+    addMatches(
+      JsonViewer.countMatches(args.requestBody, args.query),
+      1,
+      DetailSection.requestBody,
+    );
+    addMatches(
+      JsonViewer.countMatches(r.responseHeaders, args.query),
+      2,
+      DetailSection.responseHeaders,
+    );
+    addMatches(
+      JsonViewer.countMatches(args.responseBody, args.query),
+      2,
+      DetailSection.responseBody,
+    );
+    addMatches(
+      JsonViewer.countMatches(r.errorType ?? 'None', args.query),
+      3,
+      DetailSection.errorType,
+    );
+    addMatches(
+      JsonViewer.countMatches(r.errorMessage ?? 'None', args.query),
+      3,
+      DetailSection.errorMessage,
+    );
+  }
+
+  return matches;
+}
+
+class RequestRecordSnapshot {
+  final String id;
+  final String method;
+  final String url;
+  final int statusCode;
+  final int durationMs;
+  final int requestSizeBytes;
+  final int responseSizeBytes;
+  final String timestampIso;
+  final bool isBodyTruncated;
+  final Map<String, String> requestHeaders;
+  final Map<String, String> responseHeaders;
+  final String? requestContentType;
+  final String? responseContentType;
+  final String? requestBodyPreview;
+  final String? responseBodyPreview;
+  final String? errorType;
+  final String? errorMessage;
+
+  const RequestRecordSnapshot({
+    required this.id,
+    required this.method,
+    required this.url,
+    required this.statusCode,
+    required this.durationMs,
+    required this.requestSizeBytes,
+    required this.responseSizeBytes,
+    required this.timestampIso,
+    required this.isBodyTruncated,
+    required this.requestHeaders,
+    required this.responseHeaders,
+    required this.requestContentType,
+    required this.responseContentType,
+    required this.requestBodyPreview,
+    required this.responseBodyPreview,
+    required this.errorType,
+    required this.errorMessage,
+  });
 }
