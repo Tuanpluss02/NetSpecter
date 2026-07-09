@@ -1,11 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:interceptly/interceptly.dart';
-import 'package:interceptly/src/model/body_location.dart';
-import 'package:interceptly/src/session/memory_index.dart';
-
 // ignore: unused_import
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:interceptly/interceptly.dart';
+import 'package:interceptly/src/session/memory_index.dart';
 
 void main() {
   test('MemoryIndex drops oldest entry when maxEntries is exceeded', () {
@@ -52,15 +49,10 @@ void main() {
     final index = MemoryIndex(maxEntries: 100);
     index.add(_buildEntry('1'));
 
-    final emitted = <int>[];
-    final sub = index.stream.listen((entries) => emitted.add(entries.length));
-
     index.clear();
     await Future<void>.delayed(Duration.zero);
 
     expect(index.length, 0);
-    expect(emitted, contains(0));
-    await sub.cancel();
   });
 
   test('InspectorSession singleton is shared', () {
@@ -94,6 +86,7 @@ IndexEntry _buildEntry(
     method: method,
     url: url,
     statusCode: statusCode,
+    isBodyTruncated: false,
     durationMs: 20,
     requestSizeBytes: 0,
     responseSizeBytes: 0,

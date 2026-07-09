@@ -163,7 +163,9 @@ class _CustomRequestPageState extends State<CustomRequestPage>
 
     final jsonError = _validateJsonBody(_bodyController.text);
 
-    return Scaffold(
+    return Theme(
+      data: InterceptlyTheme.themeData(context: context),
+      child: Scaffold(
       backgroundColor: InterceptlyTheme.surface,
       appBar: AppBar(
         backgroundColor: InterceptlyTheme.surface,
@@ -410,7 +412,7 @@ class _CustomRequestPageState extends State<CustomRequestPage>
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildParamsTab() {

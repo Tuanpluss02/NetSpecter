@@ -29,11 +29,10 @@ Interceptly is a high-performance network inspector for Flutter. It provides rea
 
 ## Install
 
-Add the following to your `pubspec.yaml`:
+Run the following command in your terminal:
 
-```yaml
-dependencies:
-  interceptly: ^1.1.3
+```bash
+flutter pub add interceptly
 ```
 
 ---

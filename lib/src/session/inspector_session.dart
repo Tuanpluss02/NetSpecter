@@ -116,9 +116,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
 
   @override
   Set<String> get availableDomains {
-    return _memoryIndex.entries
-        .map((entry) => RequestFilter.extractDomain(entry.url))
-        .toSet();
+    return _memoryIndex.entries.map((entry) => RequestFilter.extractDomain(entry.url)).toSet();
   }
 
   // ---------------------------------------------------------------------------
@@ -199,8 +197,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
   void toggleGrouping(bool enabled) => _grouping.setEnabled(enabled);
 
   @override
-  void toggleDomainExpanded(String domain) =>
-      _grouping.toggleDomainExpanded(domain);
+  void toggleDomainExpanded(String domain) => _grouping.toggleDomainExpanded(domain);
 
   @override
   List<DomainGroup> getGroupedRecords() {
@@ -286,8 +283,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
       settings.maxBodyBytes,
       settings.previewTruncationBytes,
     );
-    final isTruncated = requestBodyBytes != null &&
-        requestBodyBytes.length > settings.maxBodyBytes;
+    final isTruncated = requestBodyBytes != null && requestBodyBytes.length > settings.maxBodyBytes;
 
     _memoryIndex.add(
       IndexEntry(
@@ -353,8 +349,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
           requestContentType: current.requestContentType,
           responseContentType: current.responseContentType,
           errorType: 'TimeoutException',
-          errorMessage:
-              'Request timed out while waiting for response or terminal error.',
+          errorMessage: 'Request timed out while waiting for response or terminal error.',
           isBodyTruncated: current.isBodyTruncated,
           fileOffset: current.fileOffset,
           fileLength: current.fileLength,
@@ -420,8 +415,11 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
     if (entry.bodyLocation == BodyLocation.memory) {
       reqBytes = entry.inlineRequestBody;
       resBytes = entry.inlineResponseBody;
-      reqPreview = BodyDecodeService.decode(reqBytes, entry.requestContentType);
-      resPreview = BodyDecodeService.decode(
+      reqPreview = await BodyDecodeService.decodeAsync(
+        reqBytes,
+        entry.requestContentType,
+      );
+      resPreview = await BodyDecodeService.decodeAsync(
         resBytes,
         entry.responseContentType,
       );
@@ -438,11 +436,11 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
               : BodyDecodeService.unpackToBytes(raw);
           reqBytes = decoded.$1;
           resBytes = decoded.$2;
-          reqPreview = BodyDecodeService.decode(
+          reqPreview = await BodyDecodeService.decodeAsync(
             reqBytes,
             entry.requestContentType,
           );
-          resPreview = BodyDecodeService.decode(
+          resPreview = await BodyDecodeService.decodeAsync(
             resBytes,
             entry.responseContentType,
           );

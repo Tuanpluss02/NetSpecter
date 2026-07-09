@@ -6,7 +6,11 @@ import 'package:interceptly/src/ui/interceptly_theme.dart';
 
 import 'toast_notification.dart';
 
-/// Collapsible JSON renderer with search highlighting and copy support.
+/// Collapsible JSON renderer with VSCode-style line numbers, gutter
+/// expand/collapse, search highlighting, and copy support.
+///
+/// Line numbers reflect the position in the **fully-expanded** document.
+/// Collapsed regions cause line numbers to skip, matching VSCode behavior.
 class JsonViewer extends StatefulWidget {
   /// JSON-like data (Map/List/scalars/String) to render.
   final dynamic data;
@@ -95,7 +99,6 @@ class JsonViewer extends StatefulWidget {
   ///
   /// [matchOffset] is the global index of the first match within [text].
   /// [activeGlobalIndex] is the currently selected match (painted orange).
-  /// All other matches are painted with the soft highlight colour.
   static List<TextSpan> buildHighlightedSpans(
     String text,
     String lowerQuery,
@@ -156,7 +159,12 @@ class JsonViewer extends StatefulWidget {
   State<JsonViewer> createState() => _JsonViewerState();
 }
 
+// ─────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────
+
 class _JsonViewerState extends State<JsonViewer> {
+  // ── Syntax colours ──
   static const _keyColor = InterceptlyGlobalColor.blue400;
   static const _stringColor = InterceptlyGlobalColor.red400;
   static const _numberColor = InterceptlyGlobalColor.green400;
@@ -165,6 +173,56 @@ class _JsonViewerState extends State<JsonViewer> {
   static const _punctuationColor = InterceptlyGlobalColor.textQuaternary;
   static const _highlightColor = InterceptlyGlobalColor.highlightStrong;
   static const _activeHighlightColor = InterceptlyGlobalColor.orange;
+  static const _lineNumberColor = InterceptlyGlobalColor.textMuted;
+
+  static const double _indentWidth = 16.0;
+  static const double _foldIconWidth = 16.0;
+
+  /// Manual expand / collapse state keyed by JSON path.
+  final Map<String, bool> _expandState = {};
+
+  /// Paths auto-expanded to reveal the current active search match.
+  final Set<String> _searchAutoExpanded = {};
+
+  /// Paths the **user** explicitly collapsed. Prevents re-auto-expanding
+  /// a node when the active match is still in its subtree.
+  final Set<String> _userCollapsedPaths = {};
+
+  /// Key attached to the first line containing the active search match,
+  /// used by [Scrollable.ensureVisible] to scroll to it.
+  GlobalKey? _activeScrollKey;
+
+  // ── Lifecycle ──
+
+  @override
+  void didUpdateWidget(covariant JsonViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
+        widget.searchQuery != oldWidget.searchQuery) {
+      _searchAutoExpanded.clear();
+      _userCollapsedPaths.clear();
+    }
+  }
+
+  // ── Expand / collapse helpers ──
+
+  bool _isNodeExpanded(String path, int childCount) {
+    if (_searchAutoExpanded.contains(path)) return true;
+    return _expandState[path] ?? (childCount <= 20);
+  }
+
+  void _toggleNode(String path, int childCount) {
+    setState(() {
+      final wasExpanded = _isNodeExpanded(path, childCount);
+      _expandState[path] = !wasExpanded;
+      _searchAutoExpanded.remove(path);
+      if (wasExpanded) {
+        _userCollapsedPaths.add(path);
+      } else {
+        _userCollapsedPaths.remove(path);
+      }
+    });
+  }
 
   void _copyToClipboard() {
     final formatted = JsonViewer.formatData(widget.data);
@@ -175,46 +233,175 @@ class _JsonViewerState extends State<JsonViewer> {
     });
   }
 
+  TextStyle get _baseTextStyle => InterceptlyTheme.typography.bodyMediumRegular;
+
+  TextSpan _bracketSpan(String text) => TextSpan(
+        text: text,
+        style: _baseTextStyle.copyWith(color: _punctuationColor),
+      );
+
+  // ─────────────────────────────────────────────────────────────
+  // Expanded line counting
+  // ─────────────────────────────────────────────────────────────
+
+  /// Counts how many lines [value] would occupy when **fully expanded**.
+  ///
+  /// Used to assign correct real line numbers when a collapsible node
+  /// is folded — the line numbers skip the hidden range, matching
+  /// VSCode behavior.
+  static int _countExpandedLines(dynamic value) {
+    if (value == null || value is bool || value is num || value is String) {
+      return 1;
+    }
+    if (value is List) {
+      if (value.isEmpty) return 1; // rendered as "[]"
+      int total = 2; // opening '[' + closing ']'
+      for (final item in value) {
+        total += _countExpandedLines(item);
+      }
+      return total;
+    }
+    if (value is Map) {
+      if (value.isEmpty) return 1; // rendered as "{}"
+      int total = 2; // opening '{' + closing '}'
+      for (final entry in value.entries) {
+        total += _countExpandedLines(entry.value);
+      }
+      return total;
+    }
+    return 1; // fallback for unknown types
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     if (widget.data == null) {
       return Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
         child: Text(
           'No Data',
-          style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+          style: _baseTextStyle.copyWith(
             fontStyle: FontStyle.italic,
             color: InterceptlyTheme.textMuted,
           ),
         ),
       );
     }
+
+    // Reset scroll key for this build pass.
+    _activeScrollKey = null;
+
+    final query = widget.searchQuery?.toLowerCase().trim();
+    final hasQuery = query != null && query.isNotEmpty;
+
+    // Flatten JSON tree into a sequential line list.
+    final lines = <_FlatLine>[];
+    _flatten(
+      value: widget.data,
+      key: null,
+      isLast: true,
+      indent: 0,
+      path: r'$',
+      query: hasQuery ? query : null,
+      matchOffset: widget.matchOffset,
+      realLine: 1,
+      output: lines,
+    );
+
+    if (lines.isEmpty) return const SizedBox.shrink();
+
+    // Gutter sizing based on the highest real line number (last line).
+    final maxRealLine = lines.last.realLineNumber;
+    final digitCount = maxRealLine.toString().length;
+    final lineNumberWidth = (digitCount + 1) * 8.0;
+
+    final contentStyle = _baseTextStyle.copyWith(
+      fontFamilyFallback: const ['monospace'],
+      fontSize: 12,
+      height: 1.5,
+    );
+    const lineHeight = 18.0; // fontSize 12 × height 1.5
+
+    // Schedule scroll-to for the active search match.
+    final scrollKey = _activeScrollKey;
+    if (scrollKey != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = scrollKey.currentContext;
+        if (ctx != null && ctx.mounted) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 24),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          SelectionArea(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DefaultTextStyle(
-                style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                  fontFamilyFallback: ['monospace'],
-                  fontSize: 12,
-                  height: 1.5,
+          DefaultTextStyle(
+            style: contentStyle,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Gutter (line numbers + fold icons) ──
+                Container(
+                  padding: const EdgeInsets.only(right: 4.0),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: InterceptlyTheme.dividerSubtle,
+                        width: 1.0,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (int i = 0; i < lines.length; i++)
+                        _buildGutterCell(
+                          line: lines[i],
+                          lineNumberWidth: lineNumberWidth,
+                          lineHeight: lineHeight,
+                          style: contentStyle,
+                        ),
+                    ],
+                  ),
                 ),
-                child: _JsonNode(
-                  nodeKey: null,
-                  value: widget.data,
-                  isLast: true,
-                  root: true,
-                  searchQuery: widget.searchQuery,
-                  matchOffset: widget.matchOffset,
-                  activeGlobalIndex: widget.activeGlobalIndex,
+
+                // ── Content (horizontally scrollable) ──
+                Expanded(
+                  child: SelectionArea(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (int i = 0; i < lines.length; i++)
+                              _buildContentLine(
+                                line: lines[i],
+                                lineHeight: lineHeight,
+                                style: contentStyle,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
+
+          // ── Copy button ──
           Positioned(
             top: -10,
             right: -10,
@@ -242,502 +429,457 @@ class _JsonViewerState extends State<JsonViewer> {
       ),
     );
   }
-}
 
-class _JsonNode extends StatefulWidget {
-  final String? nodeKey;
-  final dynamic value;
-  final bool isLast;
-  final bool root;
-  final String? searchQuery;
-  final int matchOffset;
-  final int? activeGlobalIndex;
+  // ─────────────────────────────────────────────────────────────
+  // Gutter & Content line builders
+  // ─────────────────────────────────────────────────────────────
 
-  const _JsonNode({
-    this.nodeKey,
-    required this.value,
-    this.isLast = false,
-    this.root = false,
-    this.searchQuery,
-    this.matchOffset = 0,
-    this.activeGlobalIndex,
-  });
+  /// Builds one gutter row: **real line number** + optional **fold icon**.
+  ///
+  /// The entire row is tappable for collapsible lines so the touch
+  /// target is wide enough on mobile.
+  Widget _buildGutterCell({
+    required _FlatLine line,
+    required double lineNumberWidth,
+    required double lineHeight,
+    required TextStyle style,
+  }) {
+    final hasFold = line.collapsible != null;
 
-  @override
-  State<_JsonNode> createState() => _JsonNodeState();
-}
+    Widget cell = SizedBox(
+      height: lineHeight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Line number (real position in the fully-expanded document)
+          SizedBox(
+            width: lineNumberWidth,
+            child: Text(
+              '${line.realLineNumber}',
+              textAlign: TextAlign.right,
+              style: style.copyWith(color: _lineNumberColor),
+            ),
+          ),
+          // Fold icon slot
+          SizedBox(
+            width: _foldIconWidth,
+            height: lineHeight,
+            child: hasFold
+                ? Center(
+                    child: Transform.rotate(
+                      angle: line.collapsible!.isExpanded ? 0 : -1.5708,
+                      child: const Icon(
+                        Icons.arrow_drop_down,
+                        size: 16,
+                        color: InterceptlyTheme.textMuted,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
 
-class _JsonNodeState extends State<_JsonNode> {
-  late bool _isExpanded;
-  bool _userToggled = false;
-  GlobalKey? _activeScrollKey;
-
-  @override
-  void initState() {
-    super.initState();
-    _isExpanded = _shouldExpandByDefault(widget.value);
-    // Expand if the active match is inside this subtree on first build
-    if (!_isExpanded && _subtreeContainsActiveMatch()) {
-      _isExpanded = true;
+    if (hasFold) {
+      cell = GestureDetector(
+        onTap: () => _toggleNode(
+          line.collapsible!.path,
+          line.collapsible!.childCount,
+        ),
+        behavior: HitTestBehavior.opaque,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: cell,
+        ),
+      );
     }
+
+    return cell;
   }
 
-  @override
-  void didUpdateWidget(covariant _JsonNode oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Reset user toggle and scroll key when search navigation changes
-    if (widget.activeGlobalIndex != oldWidget.activeGlobalIndex ||
-        widget.searchQuery != oldWidget.searchQuery) {
-      _userToggled = false;
-      _activeScrollKey = null;
+  /// Builds one content row: indented text spans with optional
+  /// [GlobalKey] for scroll-to-active-match.
+  Widget _buildContentLine({
+    required _FlatLine line,
+    required double lineHeight,
+    required TextStyle style,
+  }) {
+    Widget content = SizedBox(
+      height: lineHeight,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: EdgeInsets.only(left: line.indentLevel * _indentWidth),
+          child: Text.rich(
+            TextSpan(
+              style: style,
+              children: line.spans,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (line.hasActiveMatch) {
+      _activeScrollKey ??= GlobalKey();
+      content = KeyedSubtree(key: _activeScrollKey, child: content);
     }
-    // Auto-expand if the active match is inside this subtree
-    if (!_userToggled && !_isExpanded && _subtreeContainsActiveMatch()) {
-      _isExpanded = true;
-    }
+
+    return content;
   }
 
-  bool _subtreeContainsActiveMatch() {
-    final activeIdx = widget.activeGlobalIndex;
-    if (activeIdx == null) return false;
-    final q = widget.searchQuery;
-    if (q == null || q.isEmpty) return false;
+  // ─────────────────────────────────────────────────────────────
+  // Flatten logic
+  // ─────────────────────────────────────────────────────────────
 
-    final totalInSubtree = _totalMatchesInNode();
-    final start = widget.matchOffset;
-    final end = start + totalInSubtree;
-    return activeIdx >= start && activeIdx < end;
-  }
+  /// Recursively flatten [value] into sequential [_FlatLine] objects.
+  ///
+  /// [realLine] is the line number this value starts at in the
+  /// fully-expanded document.
+  ///
+  /// Returns a record with the updated [matchOffset] and the
+  /// [nextRealLine] (the line number that follows this value in the
+  /// fully-expanded view).
+  ({int matchOffset, int nextRealLine}) _flatten({
+    required dynamic value,
+    required String? key,
+    required bool isLast,
+    required int indent,
+    required String path,
+    required String? query,
+    required int matchOffset,
+    required int realLine,
+    required List<_FlatLine> output,
+  }) {
+    int currentOffset = matchOffset;
 
-  int _totalMatchesInNode() {
-    final q = widget.searchQuery;
-    if (q == null || q.isEmpty) return 0;
-    int total = 0;
-    // Count key matches
-    if (widget.nodeKey != null) {
-      total += JsonViewer._countIn(widget.nodeKey!, q.toLowerCase());
-    }
-    // Count value matches
-    total += JsonViewer.countMatches(widget.value, q);
-    return total;
-  }
-
-  static bool _shouldExpandByDefault(dynamic value) {
-    if (value is List) return value.length <= 20;
-    if (value is Map) return value.length <= 20;
-    return true;
-  }
-
-  void _toggle() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      _userToggled = true;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final query = widget.searchQuery?.toLowerCase().trim();
-    final hasQuery = query != null && query.isNotEmpty;
-
-    // Match offset for this node's key
-    int currentOffset = widget.matchOffset;
-
-    // Build key span with highlighting
-    TextSpan keyHtml;
-    if (widget.nodeKey != null) {
-      final keyText = '"${widget.nodeKey}"';
-      if (hasQuery) {
-        final keySpans = JsonViewer.buildHighlightedSpans(
-          keyText,
-          query,
-          currentOffset,
-          widget.activeGlobalIndex,
-          _JsonViewerState._keyColor,
+    // ── Build key spans ──
+    final keySpans = <TextSpan>[];
+    if (key != null) {
+      final keyText = '"$key"';
+      if (query != null) {
+        keySpans.addAll(
+          JsonViewer.buildHighlightedSpans(
+            keyText,
+            query,
+            currentOffset,
+            widget.activeGlobalIndex,
+            _keyColor,
+          ),
         );
         currentOffset += JsonViewer._countIn(keyText, query);
-        keyHtml = TextSpan(
-          children: [
-            ...keySpans,
-            TextSpan(
-              text: ': ',
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                color: _JsonViewerState._punctuationColor,
-              ),
-            ),
-          ],
-        );
       } else {
-        keyHtml = TextSpan(
-          children: [
-            TextSpan(
-              text: keyText,
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                color: _JsonViewerState._keyColor,
-              ),
-            ),
-            TextSpan(
-              text: ': ',
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                color: _JsonViewerState._punctuationColor,
-              ),
-            ),
-          ],
-        );
+        keySpans.add(TextSpan(
+          text: keyText,
+          style: _baseTextStyle.copyWith(color: _keyColor),
+        ));
       }
-    } else {
-      keyHtml = const TextSpan();
+      keySpans.add(TextSpan(
+        text: ': ',
+        style: _baseTextStyle.copyWith(color: _punctuationColor),
+      ));
     }
 
-    final comma = widget.isLast
-        ? const TextSpan()
+    final commaSpan = isLast
+        ? null
         : TextSpan(
             text: ',',
-            style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-              color: _JsonViewerState._punctuationColor,
-            ),
+            style: _baseTextStyle.copyWith(color: _punctuationColor),
           );
 
-    // Leaf nodes
-    if (widget.value == null) {
-      return _buildLeafLine(
-        keyHtml,
-        'null',
-        _JsonViewerState._nullColor,
-        currentOffset,
-        query,
-        comma,
-      );
+    // ── Scalars ──
+    if (value == null) {
+      return _emitLeaf(output, indent, keySpans, 'null', _nullColor,
+          currentOffset, query, commaSpan, realLine);
     }
-    if (widget.value is bool) {
-      return _buildLeafLine(
-        keyHtml,
-        widget.value.toString(),
-        _JsonViewerState._boolColor,
-        currentOffset,
-        query,
-        comma,
-      );
+    if (value is bool) {
+      return _emitLeaf(output, indent, keySpans, value.toString(), _boolColor,
+          currentOffset, query, commaSpan, realLine);
     }
-    if (widget.value is num) {
-      return _buildLeafLine(
-        keyHtml,
-        widget.value.toString(),
-        _JsonViewerState._numberColor,
-        currentOffset,
-        query,
-        comma,
-      );
+    if (value is num) {
+      return _emitLeaf(output, indent, keySpans, value.toString(), _numberColor,
+          currentOffset, query, commaSpan, realLine);
     }
-    if (widget.value is String) {
-      final text = '"${widget.value}"';
-      return _buildLeafLine(
-        keyHtml,
-        text,
-        _JsonViewerState._stringColor,
-        currentOffset,
-        query,
-        comma,
-      );
+    if (value is String) {
+      return _emitLeaf(output, indent, keySpans, '"$value"', _stringColor,
+          currentOffset, query, commaSpan, realLine);
     }
 
-    // Collection nodes
-    if (widget.value is List) {
-      final list = widget.value as List;
-      if (list.isEmpty) {
-        return _buildSimpleLine(keyHtml, '[]', comma);
+    // ── List ──
+    if (value is List) {
+      if (value.isEmpty) {
+        output.add(_FlatLine(
+          indentLevel: indent,
+          realLineNumber: realLine,
+          spans: [
+            ...keySpans,
+            _bracketSpan('[]'),
+            if (commaSpan != null) commaSpan,
+          ],
+        ));
+        return (matchOffset: currentOffset, nextRealLine: realLine + 1);
       }
-      return _buildCollapsible(
-        keyHtml: keyHtml,
+      return _emitCollapsible(
+        output: output,
+        indent: indent,
+        keySpans: keySpans,
         openBracket: '[',
         closeBracket: ']',
-        comma: comma,
-        entries: list.asMap().entries.map(
+        commaSpan: commaSpan,
+        path: path,
+        childCount: value.length,
+        query: query,
+        matchOffset: currentOffset,
+        realLine: realLine,
+        rawValue: value,
+        children: value.asMap().entries.map(
               (e) => _ChildEntry(
                 key: null,
                 value: e.value,
-                isLast: e.key == list.length - 1,
+                isLast: e.key == value.length - 1,
+                childPath: '$path[${e.key}]',
               ),
             ),
-        valueMatchOffset: currentOffset,
       );
     }
 
-    if (widget.value is Map) {
-      final map = widget.value as Map;
-      if (map.isEmpty) {
-        return _buildSimpleLine(keyHtml, '{}', comma);
+    // ── Map ──
+    if (value is Map) {
+      if (value.isEmpty) {
+        output.add(_FlatLine(
+          indentLevel: indent,
+          realLineNumber: realLine,
+          spans: [
+            ...keySpans,
+            _bracketSpan('{}'),
+            if (commaSpan != null) commaSpan,
+          ],
+        ));
+        return (matchOffset: currentOffset, nextRealLine: realLine + 1);
       }
-      final entries = map.entries.toList();
-      return _buildCollapsible(
-        keyHtml: keyHtml,
+      final entries = value.entries.toList();
+      return _emitCollapsible(
+        output: output,
+        indent: indent,
+        keySpans: keySpans,
         openBracket: '{',
         closeBracket: '}',
-        comma: comma,
-        entries: entries.asMap().entries.map(
+        commaSpan: commaSpan,
+        path: path,
+        childCount: entries.length,
+        query: query,
+        matchOffset: currentOffset,
+        realLine: realLine,
+        rawValue: value,
+        children: entries.asMap().entries.map(
               (e) => _ChildEntry(
                 key: e.value.key.toString(),
                 value: e.value.value,
                 isLast: e.key == entries.length - 1,
+                childPath: '$path.${e.value.key}',
               ),
             ),
-        valueMatchOffset: currentOffset,
       );
     }
 
-    return _buildLeafLine(
-      keyHtml,
-      widget.value.toString(),
-      _JsonViewerState._punctuationColor,
-      currentOffset,
-      query,
-      comma,
-    );
+    // ── Fallback ──
+    return _emitLeaf(output, indent, keySpans, value.toString(),
+        _punctuationColor, currentOffset, query, commaSpan, realLine);
   }
 
-  Widget _buildLeafLine(
-    TextSpan keySpan,
+  /// Emit a single leaf line (scalar value).
+  ({int matchOffset, int nextRealLine}) _emitLeaf(
+    List<_FlatLine> output,
+    int indent,
+    List<TextSpan> keySpans,
     String valueText,
     Color valueColor,
     int matchOffset,
     String? query,
-    TextSpan commaSpan,
+    TextSpan? commaSpan,
+    int realLine,
   ) {
-    final hasQuery = query != null && query.isNotEmpty;
-
-    TextSpan valueSpan;
+    final spans = <TextSpan>[...keySpans];
     bool hasActiveMatch = false;
-    if (hasQuery) {
-      final spans = JsonViewer.buildHighlightedSpans(
+
+    if (query != null) {
+      final valueSpans = JsonViewer.buildHighlightedSpans(
         valueText,
         query,
         matchOffset,
         widget.activeGlobalIndex,
         valueColor,
       );
-      final hasActiveMatchInValue = spans.any(
-        (s) =>
-            s.style?.backgroundColor == _JsonViewerState._activeHighlightColor,
+      final activeInValue = valueSpans.any(
+        (s) => s.style?.backgroundColor == _activeHighlightColor,
       );
-      // Also check if the active match landed in this node's key span
-      // (key matches are counted before value matches, so matchOffset is
-      // already past them — the key span carries the highlight but
-      // _buildLeafLine would otherwise miss it).
-      final hasActiveMatchInKey = _spanHasActiveHighlight(keySpan);
-      hasActiveMatch = hasActiveMatchInValue || hasActiveMatchInKey;
-      valueSpan = TextSpan(children: spans);
+      final activeInKey = keySpans.any(_spanHasActiveHighlight);
+      hasActiveMatch = activeInValue || activeInKey;
+      spans.addAll(valueSpans);
+      matchOffset += JsonViewer._countIn(valueText, query);
     } else {
-      valueSpan = TextSpan(
+      spans.add(TextSpan(
         text: valueText,
-        style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-          color: valueColor,
-        ),
-      );
+        style: _baseTextStyle.copyWith(color: valueColor),
+      ));
     }
 
-    if (hasActiveMatch) {
-      _activeScrollKey ??= GlobalKey();
-    }
-    final key = hasActiveMatch ? _activeScrollKey : null;
-    if (hasActiveMatch) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final ctx = key?.currentContext;
-        if (ctx != null && ctx.mounted) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
-    }
+    if (commaSpan != null) spans.add(commaSpan);
 
-    return Padding(
-      key: key,
-      padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
-      child: Text.rich(
-        TextSpan(
-          style: DefaultTextStyle.of(context).style,
-          children: [keySpan, valueSpan, commaSpan],
-        ),
-      ),
-    );
+    output.add(_FlatLine(
+      indentLevel: indent,
+      realLineNumber: realLine,
+      spans: spans,
+      hasActiveMatch: hasActiveMatch,
+    ));
+
+    return (matchOffset: matchOffset, nextRealLine: realLine + 1);
   }
 
-  Widget _buildSimpleLine(TextSpan keySpan, String text, TextSpan commaSpan) {
-    return Padding(
-      padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
-      child: Text.rich(
-        TextSpan(
-          style: DefaultTextStyle.of(context).style,
-          children: [
-            keySpan,
-            TextSpan(
-              text: text,
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                color: _JsonViewerState._punctuationColor,
-              ),
-            ),
-            commaSpan,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCollapsible({
-    required TextSpan keyHtml,
+  /// Emit lines for a collapsible Map or List.
+  ///
+  /// When expanded: header + children + closing bracket.
+  /// When collapsed: single line with `{ … }` / `[ … ]`.
+  ///
+  /// Collapsed nodes advance [realLine] by the number of lines the
+  /// fully-expanded subtree would occupy so siblings get correct
+  /// real line numbers.
+  ({int matchOffset, int nextRealLine}) _emitCollapsible({
+    required List<_FlatLine> output,
+    required int indent,
+    required List<TextSpan> keySpans,
     required String openBracket,
     required String closeBracket,
-    required TextSpan comma,
-    required Iterable<_ChildEntry> entries,
-    required int valueMatchOffset,
+    required TextSpan? commaSpan,
+    required String path,
+    required int childCount,
+    required String? query,
+    required int matchOffset,
+    required int realLine,
+    required dynamic rawValue,
+    required Iterable<_ChildEntry> children,
   }) {
-    // Build children with correct match offsets
-    List<Widget>? children;
-    if (_isExpanded) {
-      final query = widget.searchQuery;
-      int childOffset = valueMatchOffset;
-      children = [];
-      for (final entry in entries) {
-        final child = _JsonNode(
-          nodeKey: entry.key,
-          value: entry.value,
-          isLast: entry.isLast,
-          searchQuery: query,
-          matchOffset: childOffset,
-          activeGlobalIndex: widget.activeGlobalIndex,
-        );
-        children.add(child);
+    int currentOffset = matchOffset;
 
-        // Advance offset by this child's total matches
-        if (query != null && query.isNotEmpty) {
-          if (entry.key != null) {
-            childOffset += JsonViewer._countIn(
-              '"${entry.key}"',
-              query.toLowerCase(),
-            );
-          }
-          childOffset += JsonViewer.countMatches(entry.value, query);
+    // Auto-expand when the active search match falls inside this subtree
+    // and the user hasn't manually collapsed it.
+    if (query != null &&
+        widget.activeGlobalIndex != null &&
+        !_userCollapsedPaths.contains(path)) {
+      final totalValueMatches = JsonViewer.countMatches(rawValue, query);
+      if (totalValueMatches > 0 &&
+          widget.activeGlobalIndex! >= currentOffset &&
+          widget.activeGlobalIndex! < currentOffset + totalValueMatches) {
+        if (!_isNodeExpanded(path, childCount)) {
+          _searchAutoExpanded.add(path);
         }
       }
     }
 
-    final hasActiveMatchInHeader = _spanHasActiveHighlight(keyHtml);
-    if (hasActiveMatchInHeader) {
-      _activeScrollKey ??= GlobalKey();
-    }
-    final headerKey = hasActiveMatchInHeader ? _activeScrollKey : null;
-    if (hasActiveMatchInHeader) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final ctx = headerKey?.currentContext;
-        if (ctx != null && ctx.mounted) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
-    }
+    final expanded = _isNodeExpanded(path, childCount);
+    final activeInKey = keySpans.any(_spanHasActiveHighlight);
 
-    return Padding(
-      padding: EdgeInsets.only(left: widget.root ? 0 : 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            key: headerKey,
-            onTap: _toggle,
-            hoverColor: InterceptlyTheme.hoverOverlay,
-            borderRadius: BorderRadius.circular(4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Transform.rotate(
-                  angle: _isExpanded ? 0 : -1.5708,
-                  child: const Icon(
-                    Icons.arrow_drop_down,
-                    size: 16,
-                    color: InterceptlyTheme.textMuted,
-                  ),
-                ),
-                Text.rich(
-                  TextSpan(
-                    style: DefaultTextStyle.of(context).style,
-                    children: [
-                      keyHtml,
-                      TextSpan(
-                        text: openBracket,
-                        style: InterceptlyTheme.typography.bodyMediumRegular
-                            .copyWith(
-                          color: _JsonViewerState._punctuationColor,
-                        ),
-                      ),
-                      if (!_isExpanded)
-                        TextSpan(
-                          text: ' ... ',
-                          style: InterceptlyTheme.typography.bodyMediumRegular
-                              .copyWith(
-                            color: InterceptlyTheme.textMuted,
-                            fontSize: 10,
-                          ),
-                        ),
-                      if (!_isExpanded)
-                        TextSpan(
-                          text: closeBracket,
-                          style: InterceptlyTheme.typography.bodyMediumRegular
-                              .copyWith(
-                            color: _JsonViewerState._punctuationColor,
-                          ),
-                        ),
-                      if (!_isExpanded) comma,
-                    ],
-                  ),
-                ),
-              ],
+    if (expanded) {
+      // Header: "key": {
+      output.add(_FlatLine(
+        indentLevel: indent,
+        realLineNumber: realLine,
+        spans: [...keySpans, _bracketSpan(openBracket)],
+        collapsible: _CollapsibleInfo(
+          path: path,
+          childCount: childCount,
+          isExpanded: true,
+        ),
+        hasActiveMatch: activeInKey,
+      ));
+
+      int nextLine = realLine + 1;
+
+      // Children
+      for (final child in children) {
+        final result = _flatten(
+          value: child.value,
+          key: child.key,
+          isLast: child.isLast,
+          indent: indent + 1,
+          path: child.childPath,
+          query: query,
+          matchOffset: currentOffset,
+          realLine: nextLine,
+          output: output,
+        );
+        currentOffset = result.matchOffset;
+        nextLine = result.nextRealLine;
+      }
+
+      // Closing bracket
+      output.add(_FlatLine(
+        indentLevel: indent,
+        realLineNumber: nextLine,
+        spans: [
+          _bracketSpan(closeBracket),
+          if (commaSpan != null) commaSpan,
+        ],
+      ));
+
+      return (matchOffset: currentOffset, nextRealLine: nextLine + 1);
+    } else {
+      // Collapsed: "key": { … },
+      //
+      // The real line number is the opening bracket line. We advance
+      // by the total expanded line count so the next sibling picks up
+      // the correct real line number.
+      final expandedLineCount = _countExpandedLines(rawValue);
+
+      output.add(_FlatLine(
+        indentLevel: indent,
+        realLineNumber: realLine,
+        spans: [
+          ...keySpans,
+          _bracketSpan(openBracket),
+          TextSpan(
+            text: ' … ',
+            style: _baseTextStyle.copyWith(
+              color: InterceptlyTheme.textMuted,
+              fontSize: 10,
             ),
           ),
-          if (_isExpanded && children != null)
-            RepaintBoundary(
-              child: Container(
-                margin: const EdgeInsets.only(left: 8.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: InterceptlyTheme.dividerSubtle,
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: children,
-                ),
-              ),
-            ),
-          if (_isExpanded)
-            Text.rich(
-              TextSpan(
-                style: DefaultTextStyle.of(context).style,
-                children: [
-                  TextSpan(
-                    text: closeBracket,
-                    style: InterceptlyTheme.typography.bodyMediumRegular
-                        .copyWith(color: _JsonViewerState._punctuationColor),
-                  ),
-                  comma,
-                ],
-              ),
-            ),
+          _bracketSpan(closeBracket),
+          if (commaSpan != null) commaSpan,
         ],
-      ),
-    );
+        collapsible: _CollapsibleInfo(
+          path: path,
+          childCount: childCount,
+          isExpanded: false,
+        ),
+        hasActiveMatch: activeInKey,
+      ));
+
+      // Advance the match offset past all collapsed children so
+      // sibling nodes receive the correct offset.
+      if (query != null) {
+        for (final child in children) {
+          if (child.key != null) {
+            currentOffset += JsonViewer._countIn('"${child.key}"', query);
+          }
+          currentOffset += JsonViewer.countMatches(child.value, query);
+        }
+      }
+
+      return (
+        matchOffset: currentOffset,
+        nextRealLine: realLine + expandedLineCount,
+      );
+    }
   }
+
+  // ── Helpers ──
 
   static bool _spanHasActiveHighlight(TextSpan span) {
     final style = span.style;
-    if (style?.backgroundColor == _JsonViewerState._activeHighlightColor) {
+    if (style?.backgroundColor == _activeHighlightColor) {
       return true;
     }
 
@@ -752,9 +894,70 @@ class _JsonNodeState extends State<_JsonNode> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Data classes
+// ─────────────────────────────────────────────────────────────
+
+/// A single visual line in the flat JSON view.
+class _FlatLine {
+  /// Indentation depth (0 = root).
+  final int indentLevel;
+
+  /// Line number in the **fully-expanded** document.
+  ///
+  /// When collapsible regions are folded, visible line numbers will
+  /// skip the hidden range — matching VSCode behavior.
+  final int realLineNumber;
+
+  /// Inline spans forming the visible text content of this line.
+  final List<TextSpan> spans;
+
+  /// Non-null when this line opens a collapsible block.
+  final _CollapsibleInfo? collapsible;
+
+  /// `true` when this line contains the currently active search match.
+  final bool hasActiveMatch;
+
+  const _FlatLine({
+    required this.indentLevel,
+    required this.realLineNumber,
+    required this.spans,
+    this.collapsible,
+    this.hasActiveMatch = false,
+  });
+}
+
+/// Metadata attached to a collapsible header line.
+class _CollapsibleInfo {
+  /// Unique path identifying this node (e.g. `$.data.items[0]`).
+  final String path;
+
+  /// Number of direct children (used for the default expand heuristic).
+  final int childCount;
+
+  /// Snapshot of the expanded state at build time.
+  final bool isExpanded;
+
+  const _CollapsibleInfo({
+    required this.path,
+    required this.childCount,
+    required this.isExpanded,
+  });
+}
+
+/// A child entry passed to [_emitCollapsible] for iteration.
 class _ChildEntry {
   final String? key;
   final dynamic value;
   final bool isLast;
-  const _ChildEntry({this.key, required this.value, required this.isLast});
+
+  /// Path string for this child (e.g. `$.items[0]` or `$.data.name`).
+  final String childPath;
+
+  const _ChildEntry({
+    this.key,
+    required this.value,
+    this.isLast = false,
+    required this.childPath,
+  });
 }

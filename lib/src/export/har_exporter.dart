@@ -22,6 +22,10 @@ class HarExporter {
     };
   }
 
+  /// Convenience alias for [toMap] — matches the [PostmanExporter] naming.
+  static Map<String, Object?> fromRecords(List<RequestRecord> records) =>
+      toMap(records);
+
   static Map<String, Object?> _entryFromRecord(RequestRecord r) {
     return {
       'startedDateTime': r.timestamp.toIso8601String(),
