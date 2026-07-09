@@ -1,3 +1,9 @@
+## 1.1.4
+
+### Fixed
+- Fixed an issue where `RequestDetailPage` and `CustomRequestPage` inherited the host application's `ThemeData` (e.g. `TabBarTheme`), causing inconsistent layout sizes.
+- Improved the reliability of the inspector overlay initialization on app startup by switching from frame-dependent retries to time-based retries, ensuring the trigger icon appears reliably even if `runApp` is delayed by async tasks.
+
 ## 1.1.3
 
 ### Added

@@ -108,9 +108,10 @@ void _pushInspector({
 void _tryInsertOverlays([int attempt = 0]) {
   final overlay = _state.navigatorKey?.currentState?.overlay;
   if (overlay == null) {
-    if (attempt < 10) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _tryInsertOverlays(attempt + 1),
+    if (attempt < 50) {
+      Future.delayed(
+        const Duration(milliseconds: 100),
+        () => _tryInsertOverlays(attempt + 1),
       );
     }
     return;

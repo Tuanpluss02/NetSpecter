@@ -228,7 +228,12 @@ class _RequestDetailPageState extends State<RequestDetailPage>
 
         final path = Uri.tryParse(displayUrl)?.path ?? displayUrl;
 
-        return Scaffold(
+        return Theme(
+          data: InterceptlyTheme.themeData(
+            context: context,
+            themeMode: widget.session.preferences.themeMode,
+          ),
+          child: Scaffold(
           backgroundColor: InterceptlyTheme.surface,
           appBar: AppBar(
             backgroundColor: InterceptlyTheme.surface,
@@ -466,7 +471,7 @@ class _RequestDetailPageState extends State<RequestDetailPage>
               ),
             ),
           ),
-        );
+        ));
       },
     );
   }
