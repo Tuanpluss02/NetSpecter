@@ -6,7 +6,8 @@ class InterceptlyTheme {
   static const String fontFamily = 'JetBrainsMono';
   static const String fontPackage = 'interceptly';
 
-  static final ValueNotifier<Brightness> brightnessNotifier = ValueNotifier<Brightness>(
+  static final ValueNotifier<Brightness> brightnessNotifier =
+      ValueNotifier<Brightness>(
     WidgetsBinding.instance.platformDispatcher.platformBrightness,
   );
 

@@ -116,7 +116,9 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
 
   @override
   Set<String> get availableDomains {
-    return _memoryIndex.entries.map((entry) => RequestFilter.extractDomain(entry.url)).toSet();
+    return _memoryIndex.entries
+        .map((entry) => RequestFilter.extractDomain(entry.url))
+        .toSet();
   }
 
   // ---------------------------------------------------------------------------
@@ -197,7 +199,8 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
   void toggleGrouping(bool enabled) => _grouping.setEnabled(enabled);
 
   @override
-  void toggleDomainExpanded(String domain) => _grouping.toggleDomainExpanded(domain);
+  void toggleDomainExpanded(String domain) =>
+      _grouping.toggleDomainExpanded(domain);
 
   @override
   List<DomainGroup> getGroupedRecords() {
@@ -283,7 +286,8 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
       settings.maxBodyBytes,
       settings.previewTruncationBytes,
     );
-    final isTruncated = requestBodyBytes != null && requestBodyBytes.length > settings.maxBodyBytes;
+    final isTruncated = requestBodyBytes != null &&
+        requestBodyBytes.length > settings.maxBodyBytes;
 
     _memoryIndex.add(
       IndexEntry(
@@ -349,7 +353,8 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
           requestContentType: current.requestContentType,
           responseContentType: current.responseContentType,
           errorType: 'TimeoutException',
-          errorMessage: 'Request timed out while waiting for response or terminal error.',
+          errorMessage:
+              'Request timed out while waiting for response or terminal error.',
           isBodyTruncated: current.isBodyTruncated,
           fileOffset: current.fileOffset,
           fileLength: current.fileLength,

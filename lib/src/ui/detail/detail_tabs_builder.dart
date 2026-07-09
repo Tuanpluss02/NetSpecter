@@ -190,7 +190,8 @@ class DetailTabsBuilder {
             ),
             const SizedBox(height: 6),
             Text(
-              record.errorMessage ?? 'Request failed before receiving a response.',
+              record.errorMessage ??
+                  'Request failed before receiving a response.',
               textAlign: TextAlign.center,
               style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
                 color: InterceptlyTheme.textMuted,
@@ -311,7 +312,8 @@ class DetailTabsBuilder {
 
         final msg = messages[index - 1];
         final isOut = msg['type'] == 'out';
-        final iconColor = isOut ? InterceptlyTheme.green400 : InterceptlyTheme.blue400;
+        final iconColor =
+            isOut ? InterceptlyTheme.green400 : InterceptlyTheme.blue400;
         final icon = isOut ? Icons.call_made : Icons.call_received;
         final bgColor = isOut
             ? InterceptlyTheme.green500.withValues(alpha: 0.1)
@@ -345,13 +347,14 @@ class DetailTabsBuilder {
                     const SizedBox(width: 8),
                     Text(
                       label,
-                      style:
-                          InterceptlyTheme.typography.labelSmallMedium.copyWith(color: iconColor),
+                      style: InterceptlyTheme.typography.labelSmallMedium
+                          .copyWith(color: iconColor),
                     ),
                     const Spacer(),
                     Text(
                       msg['time'] ?? '',
-                      style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                      style: InterceptlyTheme.typography.bodyMediumRegular
+                          .copyWith(
                         fontSize: 10,
                         color: InterceptlyTheme.textMuted,
                       ),
@@ -438,7 +441,8 @@ class DetailTabsBuilder {
           contentType: contentType,
           encodingLabel: encodingLabel,
         ),
-        if (contentType != null || encodingLabel != null) const SizedBox(height: 8),
+        if (contentType != null || encodingLabel != null)
+          const SizedBox(height: 8),
         isBinary
             ? _buildBinaryPreview(
                 contentType: contentType,
@@ -560,7 +564,8 @@ class DetailTabsBuilder {
         final payload = trimmed.substring(8);
         final idx = payload.indexOf('=');
         if (idx > 0) {
-          fields[payload.substring(0, idx).trim()] = payload.substring(idx + 1).trim();
+          fields[payload.substring(0, idx).trim()] =
+              payload.substring(idx + 1).trim();
         } else {
           rawLines.add(trimmed);
         }

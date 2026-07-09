@@ -69,9 +69,10 @@ class _FilterPanelState extends State<FilterPanel> {
   }
 
   bool get _hasChanges {
-    final allMethodsSelected =
-        selectedMethods.containsAll(_allMethods) && selectedMethods.length == _allMethods.length;
-    final allDomainsSelected = selectedDomains.length == widget.availableDomains.length;
+    final allMethodsSelected = selectedMethods.containsAll(_allMethods) &&
+        selectedMethods.length == _allMethods.length;
+    final allDomainsSelected =
+        selectedDomains.length == widget.availableDomains.length;
     return !allMethodsSelected ||
         !allDomainsSelected ||
         !include2xx ||
@@ -82,7 +83,8 @@ class _FilterPanelState extends State<FilterPanel> {
 
   int get _activeFilterCount {
     int count = 0;
-    if (!selectedMethods.containsAll(_allMethods) || selectedMethods.length < _allMethods.length) {
+    if (!selectedMethods.containsAll(_allMethods) ||
+        selectedMethods.length < _allMethods.length) {
       count += 1;
     }
     if (!include2xx || !include3xx || !include4xx || !include5xx) {
@@ -107,9 +109,10 @@ class _FilterPanelState extends State<FilterPanel> {
   }
 
   void _applyFilters() {
-    final allMethodsSelected =
-        selectedMethods.containsAll(_allMethods) && selectedMethods.length == _allMethods.length;
-    final allDomainsSelected = selectedDomains.length == widget.availableDomains.length;
+    final allMethodsSelected = selectedMethods.containsAll(_allMethods) &&
+        selectedMethods.length == _allMethods.length;
+    final allDomainsSelected =
+        selectedDomains.length == widget.availableDomains.length;
 
     widget.onFilterChanged(RequestFilter(
       methods: allMethodsSelected ? <String>{} : selectedMethods,
@@ -167,14 +170,16 @@ class _FilterPanelState extends State<FilterPanel> {
                 if (_activeFilterCount > 0) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: colors.actionPrimary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$_activeFilterCount',
-                      style: InterceptlyTheme.typography.labelSmallMedium.copyWith(
+                      style:
+                          InterceptlyTheme.typography.labelSmallMedium.copyWith(
                         color: colors.textOnAction,
                         fontSize: 11,
                       ),
@@ -186,10 +191,12 @@ class _FilterPanelState extends State<FilterPanel> {
                   GestureDetector(
                     onTap: _resetFilters,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
                       child: Text(
                         'Reset',
-                        style: InterceptlyTheme.typography.bodySmallMedium.copyWith(
+                        style: InterceptlyTheme.typography.bodySmallMedium
+                            .copyWith(
                           color: colors.actionPrimary,
                         ),
                       ),
@@ -467,10 +474,14 @@ class _StatusToggle extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isIncluded ? color.withValues(alpha: 0.12) : InterceptlyTheme.controlMuted,
+            color: isIncluded
+                ? color.withValues(alpha: 0.12)
+                : InterceptlyTheme.controlMuted,
             borderRadius: BorderRadius.circular(radius.md),
             border: Border.all(
-              color: isIncluded ? color.withValues(alpha: 0.35) : InterceptlyTheme.dividerSubtle,
+              color: isIncluded
+                  ? color.withValues(alpha: 0.35)
+                  : InterceptlyTheme.dividerSubtle,
               width: 1.2,
             ),
           ),
@@ -520,7 +531,8 @@ class _DomainList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = InterceptlyTheme.colors;
     final radius = InterceptlyTheme.radius;
-    final allSelected = selected.containsAll(domains) && selected.length == domains.length;
+    final allSelected =
+        selected.containsAll(domains) && selected.length == domains.length;
     final sorted = domains.toList()..sort();
 
     return Column(
@@ -548,21 +560,27 @@ class _DomainList extends StatelessWidget {
                   width: 18,
                   height: 18,
                   decoration: BoxDecoration(
-                    color: allSelected ? colors.actionPrimary : Colors.transparent,
+                    color:
+                        allSelected ? colors.actionPrimary : Colors.transparent,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: allSelected ? colors.actionPrimary : colors.textTertiary,
+                      color: allSelected
+                          ? colors.actionPrimary
+                          : colors.textTertiary,
                       width: 1.5,
                     ),
                   ),
-                  child:
-                      allSelected ? Icon(Icons.check, size: 12, color: colors.textOnAction) : null,
+                  child: allSelected
+                      ? Icon(Icons.check, size: 12, color: colors.textOnAction)
+                      : null,
                 ),
                 const SizedBox(width: 10),
                 Text(
                   'All domains',
                   style: InterceptlyTheme.typography.bodySmallMedium.copyWith(
-                    color: allSelected ? colors.actionPrimary : colors.textSecondary,
+                    color: allSelected
+                        ? colors.actionPrimary
+                        : colors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -611,10 +629,14 @@ class _DomainList extends StatelessWidget {
                               width: 18,
                               height: 18,
                               decoration: BoxDecoration(
-                                color: isSelected ? colors.actionPrimary : Colors.transparent,
+                                color: isSelected
+                                    ? colors.actionPrimary
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: isSelected ? colors.actionPrimary : colors.textTertiary,
+                                  color: isSelected
+                                      ? colors.actionPrimary
+                                      : colors.textTertiary,
                                   width: 1.5,
                                 ),
                               ),
@@ -630,8 +652,12 @@ class _DomainList extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 domain,
-                                style: InterceptlyTheme.typography.bodySmallMedium.copyWith(
-                                  color: isSelected ? colors.actionPrimary : colors.textSecondary,
+                                style: InterceptlyTheme
+                                    .typography.bodySmallMedium
+                                    .copyWith(
+                                  color: isSelected
+                                      ? colors.actionPrimary
+                                      : colors.textSecondary,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -690,7 +716,8 @@ class _Chip extends StatelessWidget {
           color: isSelected ? activeBgColor : InterceptlyTheme.controlMuted,
           borderRadius: BorderRadius.circular(InterceptlyTheme.radius.md),
           border: Border.all(
-            color: isSelected ? activeBorderColor : InterceptlyTheme.dividerSubtle,
+            color:
+                isSelected ? activeBorderColor : InterceptlyTheme.dividerSubtle,
             width: 1.2,
           ),
         ),

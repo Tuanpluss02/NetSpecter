@@ -164,255 +164,264 @@ class _CustomRequestPageState extends State<CustomRequestPage>
     final jsonError = _validateJsonBody(_bodyController.text);
 
     return Theme(
-      data: InterceptlyTheme.themeData(context: context),
-      child: Scaffold(
-      backgroundColor: InterceptlyTheme.surface,
-      appBar: AppBar(
-        backgroundColor: InterceptlyTheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: InterceptlyTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Custom Request',
-          style: InterceptlyTheme.typography.titleMediumBold.copyWith(
-            color: InterceptlyTheme.textPrimary,
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildCard(
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 110,
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _methods.contains(_methodController.text)
-                          ? _methodController.text
-                          : 'GET',
-                      dropdownColor: InterceptlyTheme.surfaceContainer,
-                      style: InterceptlyTheme.typography.bodyMediumRegular
-                          .copyWith(color: InterceptlyTheme.textPrimary),
-                      iconEnabledColor: InterceptlyTheme.textSecondary,
-                      items: _methods
-                          .map(
-                            (m) => DropdownMenuItem<String>(
-                              value: m,
-                              child: Text(
-                                m,
-                                style: InterceptlyTheme
-                                    .typography.bodyMediumRegular
-                                    .copyWith(
-                                  color: InterceptlyTheme.textPrimary,
-                                  // fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        _methodController.text = value;
-                      },
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        labelText: 'Method',
-                        labelStyle: InterceptlyTheme
-                            .typography.bodyMediumRegular
-                            .copyWith(color: InterceptlyTheme.textMuted),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _baseUrlController,
-                      decoration: InputDecoration(
-                        labelText: 'URL',
-                        labelStyle: InterceptlyTheme
-                            .typography.bodyMediumRegular
-                            .copyWith(color: InterceptlyTheme.textMuted),
-                      ),
-                      style: InterceptlyTheme.typography.bodyMediumRegular
-                          .copyWith(color: InterceptlyTheme.textPrimary),
-                    ),
-                  ),
-                ],
+        data: InterceptlyTheme.themeData(context: context),
+        child: Scaffold(
+          backgroundColor: InterceptlyTheme.surface,
+          appBar: AppBar(
+            backgroundColor: InterceptlyTheme.surface,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: InterceptlyTheme.textPrimary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Custom Request',
+              style: InterceptlyTheme.typography.titleMediumBold.copyWith(
+                color: InterceptlyTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: _buildCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TabBar(
-                      controller: _tabController,
-                      labelStyle: InterceptlyTheme.typography.labelMediumMedium,
-                      unselectedLabelStyle:
-                          InterceptlyTheme.typography.labelMediumMedium,
-                      labelColor: InterceptlyTheme.indigo400,
-                      unselectedLabelColor: InterceptlyTheme.textMuted,
-                      indicatorColor: InterceptlyTheme.indigo500,
-                      tabs: [
-                        Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('Params'),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: InterceptlyTheme.indigo500.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  enabledParams.length.toString(),
-                                  style: InterceptlyTheme
-                                      .typography.bodyMediumRegular
-                                      .copyWith(
-                                    fontSize: 11,
-                                    color: InterceptlyTheme.indigo400,
+          ),
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCard(
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: DropdownButtonFormField<String>(
+                          initialValue:
+                              _methods.contains(_methodController.text)
+                                  ? _methodController.text
+                                  : 'GET',
+                          dropdownColor: InterceptlyTheme.surfaceContainer,
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(color: InterceptlyTheme.textPrimary),
+                          iconEnabledColor: InterceptlyTheme.textSecondary,
+                          items: _methods
+                              .map(
+                                (m) => DropdownMenuItem<String>(
+                                  value: m,
+                                  child: Text(
+                                    m,
+                                    style: InterceptlyTheme
+                                        .typography.bodyMediumRegular
+                                        .copyWith(
+                                      color: InterceptlyTheme.textPrimary,
+                                      // fontSize: 13,
+                                    ),
                                   ),
                                 ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            _methodController.text = value;
+                          },
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 8),
+                            labelText: 'Method',
+                            labelStyle: InterceptlyTheme
+                                .typography.bodyMediumRegular
+                                .copyWith(color: InterceptlyTheme.textMuted),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _baseUrlController,
+                          decoration: InputDecoration(
+                            labelText: 'URL',
+                            labelStyle: InterceptlyTheme
+                                .typography.bodyMediumRegular
+                                .copyWith(color: InterceptlyTheme.textMuted),
+                          ),
+                          style: InterceptlyTheme.typography.bodyMediumRegular
+                              .copyWith(color: InterceptlyTheme.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: _buildCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TabBar(
+                          controller: _tabController,
+                          labelStyle:
+                              InterceptlyTheme.typography.labelMediumMedium,
+                          unselectedLabelStyle:
+                              InterceptlyTheme.typography.labelMediumMedium,
+                          labelColor: InterceptlyTheme.indigo400,
+                          unselectedLabelColor: InterceptlyTheme.textMuted,
+                          indicatorColor: InterceptlyTheme.indigo500,
+                          tabs: [
+                            Tab(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('Params'),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          InterceptlyTheme.indigo500.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      enabledParams.length.toString(),
+                                      style: InterceptlyTheme
+                                          .typography.bodyMediumRegular
+                                          .copyWith(
+                                        fontSize: 11,
+                                        color: InterceptlyTheme.indigo400,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
+                            Tab(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('Headers'),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          InterceptlyTheme.indigo500.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      enabledHeaders.length.toString(),
+                                      style: InterceptlyTheme
+                                          .typography.bodyMediumRegular
+                                          .copyWith(
+                                        fontSize: 11,
+                                        color: InterceptlyTheme.indigo400,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Tab(text: 'Body'),
+                          ],
+                        ),
+                        Divider(
+                            height: 1, color: InterceptlyTheme.dividerSubtle),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildParamsTab(),
+                              _buildHeadersTab(),
+                              _buildBodyTab(jsonError),
                             ],
                           ),
                         ),
-                        Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('Headers'),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: InterceptlyTheme.indigo500.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  enabledHeaders.length.toString(),
-                                  style: InterceptlyTheme
-                                      .typography.bodyMediumRegular
-                                      .copyWith(
-                                    fontSize: 11,
-                                    color: InterceptlyTheme.indigo400,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Tab(text: 'Body'),
                       ],
                     ),
-                    Divider(height: 1, color: InterceptlyTheme.dividerSubtle),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
                     Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildParamsTab(),
-                          _buildHeadersTab(),
-                          _buildBodyTab(jsonError),
-                        ],
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(40),
+                          padding: const EdgeInsets.symmetric(vertical: 0),
+                          side:
+                              BorderSide(color: InterceptlyTheme.dividerSubtle),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancel',
+                          style: InterceptlyTheme.typography.labelMediumMedium
+                              .copyWith(color: InterceptlyTheme.textSecondary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: InterceptlyTheme.indigo500,
+                          minimumSize: const Size.fromHeight(40),
+                          padding: const EdgeInsets.symmetric(vertical: 0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          final currentQueryMap = <String, String>{};
+                          for (final param in _params.where((p) => p.enabled)) {
+                            if (param.key.isNotEmpty) {
+                              currentQueryMap[param.key] = param.value;
+                            }
+                          }
+                          final currentHeadersMap = <String, String>{};
+                          for (final header
+                              in _headers.where((h) => h.enabled)) {
+                            if (header.key.isNotEmpty) {
+                              currentHeadersMap[header.key] = header.value;
+                            }
+                          }
+                          final currentFullUrl = _composeUrl(
+                            _baseUrlController.text.trim(),
+                            currentQueryMap,
+                          );
+
+                          Navigator.pop(
+                            context,
+                            CustomRequestDraft(
+                              method:
+                                  _methodController.text.trim().toUpperCase(),
+                              url: currentFullUrl,
+                              headers: currentHeadersMap,
+                              body: _bodyController.text,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Send Request',
+                          style: InterceptlyTheme.typography.labelMediumMedium
+                              .copyWith(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(40),
-                      padding: const EdgeInsets.symmetric(vertical: 0),
-                      side: BorderSide(color: InterceptlyTheme.dividerSubtle),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: InterceptlyTheme.typography.labelMediumMedium
-                          .copyWith(color: InterceptlyTheme.textSecondary),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: InterceptlyTheme.indigo500,
-                      minimumSize: const Size.fromHeight(40),
-                      padding: const EdgeInsets.symmetric(vertical: 0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () {
-                      final currentQueryMap = <String, String>{};
-                      for (final param in _params.where((p) => p.enabled)) {
-                        if (param.key.isNotEmpty) {
-                          currentQueryMap[param.key] = param.value;
-                        }
-                      }
-                      final currentHeadersMap = <String, String>{};
-                      for (final header in _headers.where((h) => h.enabled)) {
-                        if (header.key.isNotEmpty) {
-                          currentHeadersMap[header.key] = header.value;
-                        }
-                      }
-                      final currentFullUrl = _composeUrl(
-                        _baseUrlController.text.trim(),
-                        currentQueryMap,
-                      );
-
-                      Navigator.pop(
-                        context,
-                        CustomRequestDraft(
-                          method: _methodController.text.trim().toUpperCase(),
-                          url: currentFullUrl,
-                          headers: currentHeadersMap,
-                          body: _bodyController.text,
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Send Request',
-                      style: InterceptlyTheme.typography.labelMediumMedium
-                          .copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
               ],
             ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   Widget _buildParamsTab() {

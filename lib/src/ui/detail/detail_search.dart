@@ -136,8 +136,7 @@ List<DetailMatch> computeMatches(
 
 /// Snapshot model passed into [compute] — `RequestRecord` contains `Map`s of
 /// only primitive types so a JSON snapshot is safe and cheap.
-RequestRecordSnapshot snapshotRecord(RequestRecord r) =>
-    RequestRecordSnapshot(
+RequestRecordSnapshot snapshotRecord(RequestRecord r) => RequestRecordSnapshot(
       id: r.id,
       method: r.method,
       url: r.url,
@@ -181,7 +180,8 @@ Future<List<DetailMatch>> computeMatchesAsync(
       _IsolateArgs(snapshot, query, isWs, reqJson, resJson),
     );
   } catch (_) {
-    return SynchronousFuture(computeMatches(record, query, isWs, _syncParseJson));
+    return SynchronousFuture(
+        computeMatches(record, query, isWs, _syncParseJson));
   }
 }
 

@@ -229,249 +229,254 @@ class _RequestDetailPageState extends State<RequestDetailPage>
         final path = Uri.tryParse(displayUrl)?.path ?? displayUrl;
 
         return Theme(
-          data: InterceptlyTheme.themeData(
-            context: context,
-            themeMode: widget.session.preferences.themeMode,
-          ),
-          child: Scaffold(
-          backgroundColor: InterceptlyTheme.surface,
-          appBar: AppBar(
-            backgroundColor: InterceptlyTheme.surface,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            iconTheme: IconThemeData(color: InterceptlyTheme.textSecondary),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
+            data: InterceptlyTheme.themeData(
+              context: context,
+              themeMode: widget.session.preferences.themeMode,
             ),
-            title: Text(
-              path,
-              style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
-                fontSize: 14,
-                color: InterceptlyTheme.textPrimary,
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: _buildReplayChip(),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: _buildStatusChip(
-                  entry: entry,
-                  isPending: isPending,
-                  isErrorWithoutStatus: isErrorWithoutStatus,
-                  statusStyle: sStyle,
+            child: Scaffold(
+              backgroundColor: InterceptlyTheme.surface,
+              appBar: AppBar(
+                backgroundColor: InterceptlyTheme.surface,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                iconTheme: IconThemeData(color: InterceptlyTheme.textSecondary),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-              ),
-            ],
-          ),
-          body: Builder(
-            builder: (context) {
-              final record = _cachedRecord;
-              if (record == null) {
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: InterceptlyTheme.indigo500,
+                title: Text(
+                  path,
+                  style: InterceptlyTheme.typography.bodyMediumRegular.copyWith(
+                    fontSize: 14,
+                    color: InterceptlyTheme.textPrimary,
                   ),
-                );
-              }
-
-              if (_cachedQuery != _query) {
-                _recomputeMatches();
-              }
-
-              final matches = _cachedMatches;
-              final totalMatches = matches.length;
-
-              int effectiveIndex = _currentMatchIndex;
-              if (totalMatches > 0) {
-                effectiveIndex %= totalMatches;
-                if (effectiveIndex < 0) {
-                  effectiveIndex += totalMatches;
-                }
-              } else {
-                effectiveIndex = 0;
-              }
-
-              final activeGlobalIndex =
-                  totalMatches == 0 ? null : effectiveIndex;
-              final activeMatch =
-                  totalMatches == 0 ? null : matches[effectiveIndex];
-
-              if (activeMatch != null &&
-                  _tabController.index != activeMatch.tabIndex &&
-                  _tabController.length > activeMatch.tabIndex) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    _tabController.animateTo(activeMatch.tabIndex);
-                  }
-                });
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 12.0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: InterceptlyTheme.surface,
-                      border: Border(
-                        bottom: BorderSide(
-                          color: InterceptlyTheme.dividerSubtle,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: InterceptlySearchField(
-                            controller: _searchController,
-                            hintText: 'Search in details...',
-                            textInputAction: TextInputAction.search,
-                            onChanged: (value) {
-                              if (value.trim().isEmpty && _query.isNotEmpty) {
-                                setState(() {
-                                  _query = '';
-                                  _currentMatchIndex = 0;
-                                });
-                              }
-                            },
-                            onSubmitted: (value) {
-                              setState(() {
-                                _query = value.trim();
-                                _currentMatchIndex = 0;
-                              });
-                              _recomputeMatchesAsync();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          totalMatches == 0
-                              ? '0 / 0'
-                              : '${effectiveIndex + 1} / $totalMatches',
-                          style: InterceptlyTheme.typography.bodyMediumRegular
-                              .copyWith(
-                            fontSize: 12,
-                            color: InterceptlyTheme.textMuted,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.keyboard_arrow_up,
-                            size: 20,
-                            color: InterceptlyTheme.textMuted,
-                          ),
-                          tooltip: 'Previous match',
-                          onPressed: totalMatches == 0
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _currentMatchIndex--;
-                                  });
-                                },
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 20,
-                            color: InterceptlyTheme.textMuted,
-                          ),
-                          tooltip: 'Next match',
-                          onPressed: totalMatches == 0
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _currentMatchIndex++;
-                                  });
-                                },
-                        ),
-                      ],
-                    ),
+                ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: _buildReplayChip(),
                   ),
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: InterceptlyTheme.indigo500,
-                    labelColor: InterceptlyTheme.indigo400,
-                    unselectedLabelColor: InterceptlyTheme.textQuaternary,
-                    dividerColor: InterceptlyGlobalColor.transparent,
-                    tabs: isWs
-                        ? const [Tab(text: 'Overview'), Tab(text: 'Messages')]
-                        : const [
-                            Tab(text: 'Overview'),
-                            Tab(text: 'Request'),
-                            Tab(text: 'Response'),
-                            Tab(text: 'Error'),
-                          ],
-                  ),
-                  Expanded(
-                    child: AnimatedBuilder(
-                      animation: _tabController,
-                      builder: (context, _) {
-                        final tabIndex = _tabController.index;
-                        final tabsBuilder = DetailTabsBuilder(
-                          record: record,
-                          matches: matches,
-                          activeGlobalIndex: activeGlobalIndex,
-                          query: _query,
-                          urlDecodeEnabled:
-                              widget.session.preferences.urlDecodeEnabled,
-                          tryParseJson: _tryParseJson,
-                        );
-                        return IndexedStack(
-                          index: tabIndex,
-                          children: isWs
-                              ? [
-                                  _visitedTabs.contains(0)
-                                      ? tabsBuilder.buildOverviewTab()
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(1)
-                                      ? tabsBuilder.buildMessagesTab()
-                                      : const SizedBox.shrink(),
-                                ]
-                              : [
-                                  _visitedTabs.contains(0)
-                                      ? tabsBuilder.buildOverviewTab()
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(1)
-                                      ? tabsBuilder.buildRequestTab()
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(2)
-                                      ? tabsBuilder.buildResponseTab()
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(3)
-                                      ? tabsBuilder.buildErrorTab()
-                                      : const SizedBox.shrink(),
-                                ],
-                        );
-                      },
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: _buildStatusChip(
+                      entry: entry,
+                      isPending: isPending,
+                      isErrorWithoutStatus: isErrorWithoutStatus,
+                      statusStyle: sStyle,
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            key: _fabKey,
-            heroTag: null,
-            onPressed: _showShareMenu,
-            backgroundColor: InterceptlyTheme.indigo500,
-            foregroundColor: InterceptlyGlobalColor.white,
-            icon: const Icon(Icons.share, size: 18),
-            label: Text(
-              'Share',
-              style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
-                color: InterceptlyGlobalColor.white,
-                fontSize: 13,
               ),
-            ),
-          ),
-        ));
+              body: Builder(
+                builder: (context) {
+                  final record = _cachedRecord;
+                  if (record == null) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: InterceptlyTheme.indigo500,
+                      ),
+                    );
+                  }
+
+                  if (_cachedQuery != _query) {
+                    _recomputeMatches();
+                  }
+
+                  final matches = _cachedMatches;
+                  final totalMatches = matches.length;
+
+                  int effectiveIndex = _currentMatchIndex;
+                  if (totalMatches > 0) {
+                    effectiveIndex %= totalMatches;
+                    if (effectiveIndex < 0) {
+                      effectiveIndex += totalMatches;
+                    }
+                  } else {
+                    effectiveIndex = 0;
+                  }
+
+                  final activeGlobalIndex =
+                      totalMatches == 0 ? null : effectiveIndex;
+                  final activeMatch =
+                      totalMatches == 0 ? null : matches[effectiveIndex];
+
+                  if (activeMatch != null &&
+                      _tabController.index != activeMatch.tabIndex &&
+                      _tabController.length > activeMatch.tabIndex) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _tabController.animateTo(activeMatch.tabIndex);
+                      }
+                    });
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: InterceptlyTheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: InterceptlyTheme.dividerSubtle,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: InterceptlySearchField(
+                                controller: _searchController,
+                                hintText: 'Search in details...',
+                                textInputAction: TextInputAction.search,
+                                onChanged: (value) {
+                                  if (value.trim().isEmpty &&
+                                      _query.isNotEmpty) {
+                                    setState(() {
+                                      _query = '';
+                                      _currentMatchIndex = 0;
+                                    });
+                                  }
+                                },
+                                onSubmitted: (value) {
+                                  setState(() {
+                                    _query = value.trim();
+                                    _currentMatchIndex = 0;
+                                  });
+                                  _recomputeMatchesAsync();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              totalMatches == 0
+                                  ? '0 / 0'
+                                  : '${effectiveIndex + 1} / $totalMatches',
+                              style: InterceptlyTheme
+                                  .typography.bodyMediumRegular
+                                  .copyWith(
+                                fontSize: 12,
+                                color: InterceptlyTheme.textMuted,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.keyboard_arrow_up,
+                                size: 20,
+                                color: InterceptlyTheme.textMuted,
+                              ),
+                              tooltip: 'Previous match',
+                              onPressed: totalMatches == 0
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _currentMatchIndex--;
+                                      });
+                                    },
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 20,
+                                color: InterceptlyTheme.textMuted,
+                              ),
+                              tooltip: 'Next match',
+                              onPressed: totalMatches == 0
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _currentMatchIndex++;
+                                      });
+                                    },
+                            ),
+                          ],
+                        ),
+                      ),
+                      TabBar(
+                        controller: _tabController,
+                        indicatorColor: InterceptlyTheme.indigo500,
+                        labelColor: InterceptlyTheme.indigo400,
+                        unselectedLabelColor: InterceptlyTheme.textQuaternary,
+                        dividerColor: InterceptlyGlobalColor.transparent,
+                        tabs: isWs
+                            ? const [
+                                Tab(text: 'Overview'),
+                                Tab(text: 'Messages')
+                              ]
+                            : const [
+                                Tab(text: 'Overview'),
+                                Tab(text: 'Request'),
+                                Tab(text: 'Response'),
+                                Tab(text: 'Error'),
+                              ],
+                      ),
+                      Expanded(
+                        child: AnimatedBuilder(
+                          animation: _tabController,
+                          builder: (context, _) {
+                            final tabIndex = _tabController.index;
+                            final tabsBuilder = DetailTabsBuilder(
+                              record: record,
+                              matches: matches,
+                              activeGlobalIndex: activeGlobalIndex,
+                              query: _query,
+                              urlDecodeEnabled:
+                                  widget.session.preferences.urlDecodeEnabled,
+                              tryParseJson: _tryParseJson,
+                            );
+                            return IndexedStack(
+                              index: tabIndex,
+                              children: isWs
+                                  ? [
+                                      _visitedTabs.contains(0)
+                                          ? tabsBuilder.buildOverviewTab()
+                                          : const SizedBox.shrink(),
+                                      _visitedTabs.contains(1)
+                                          ? tabsBuilder.buildMessagesTab()
+                                          : const SizedBox.shrink(),
+                                    ]
+                                  : [
+                                      _visitedTabs.contains(0)
+                                          ? tabsBuilder.buildOverviewTab()
+                                          : const SizedBox.shrink(),
+                                      _visitedTabs.contains(1)
+                                          ? tabsBuilder.buildRequestTab()
+                                          : const SizedBox.shrink(),
+                                      _visitedTabs.contains(2)
+                                          ? tabsBuilder.buildResponseTab()
+                                          : const SizedBox.shrink(),
+                                      _visitedTabs.contains(3)
+                                          ? tabsBuilder.buildErrorTab()
+                                          : const SizedBox.shrink(),
+                                    ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                key: _fabKey,
+                heroTag: null,
+                onPressed: _showShareMenu,
+                backgroundColor: InterceptlyTheme.indigo500,
+                foregroundColor: InterceptlyGlobalColor.white,
+                icon: const Icon(Icons.share, size: 18),
+                label: Text(
+                  'Share',
+                  style: InterceptlyTheme.typography.bodyMediumMedium.copyWith(
+                    color: InterceptlyGlobalColor.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ));
       },
     );
   }
