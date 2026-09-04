@@ -51,6 +51,7 @@ class _DraggableFabState extends State<DraggableFab>
   @override
   void dispose() {
     _snapController.dispose();
+    _positionVN.dispose();
     super.dispose();
   }
 

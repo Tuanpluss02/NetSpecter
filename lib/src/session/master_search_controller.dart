@@ -98,11 +98,15 @@ class MasterSearchController extends ChangeNotifier {
       return res != null && res.contains(q);
     }
 
-    // Phase 1: structured fields (sync).
-    for (final e in allEntries) {
+    // Phase 1: structured fields (sync, with periodic yielding).
+    for (var i = 0; i < allEntries.length; i++) {
+      final e = allEntries[i];
       if (matchesStructured(e)) {
         matchedIds.add(e.id);
         _results!.add(e);
+      }
+      if (i % 50 == 0) {
+        await Future<void>.delayed(Duration.zero);
       }
     }
     if (gen != _generation) return;

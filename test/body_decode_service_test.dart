@@ -27,13 +27,15 @@ void main() {
     test('returns binary placeholder for image content type', () {
       final bytes = Uint8List.fromList([0xFF, 0xD8, 0xFF]);
       final result = BodyDecodeService.decode(bytes, 'image/jpeg');
-      expect(result, '[binary: 3 bytes]');
+      // Binary placeholder uses null byte prefix to distinguish from JSON arrays
+      expect(result, '\x00[binary: 3 bytes]');
     });
 
     test('returns binary placeholder when bytes fail UTF-8 decode', () {
       final bytes = Uint8List.fromList([0xFF, 0xFE]); // invalid UTF-8
       final result = BodyDecodeService.decode(bytes, 'text/plain');
-      expect(result, startsWith('[binary:'));
+      // Binary placeholder uses null byte prefix
+      expect(result, startsWith('\x00[binary:'));
     });
   });
 
@@ -119,7 +121,8 @@ void main() {
 
     test('returns binary placeholder for invalid UTF-8', () {
       final bytes = Uint8List.fromList([0xFF, 0xFE]);
-      expect(BodyDecodeService.tryUtf8(bytes), '[binary: 2 bytes]');
+      // Binary placeholder uses null byte prefix
+      expect(BodyDecodeService.tryUtf8(bytes), '\x00[binary: 2 bytes]');
     });
   });
 

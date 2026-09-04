@@ -175,7 +175,6 @@ class _JsonViewerState extends State<JsonViewer> {
   static const _activeHighlightColor = InterceptlyGlobalColor.orange;
   static const _lineNumberColor = InterceptlyGlobalColor.textMuted;
 
-  static const double _indentWidth = 16.0;
   static const double _foldIconWidth = 16.0;
 
   /// Manual expand / collapse state keyed by JSON path.
@@ -316,7 +315,8 @@ class _JsonViewerState extends State<JsonViewer> {
     // Gutter sizing based on the highest real line number (last line).
     final maxRealLine = lines.last.realLineNumber;
     final digitCount = maxRealLine.toString().length;
-    final lineNumberWidth = (digitCount + 1) * 8.0;
+    // digitCount * 8.0 for digits + 8.0 for spacing between number and fold icon
+    final lineNumberWidth = digitCount * 8.0 + 8.0;
 
     final contentStyle = _baseTextStyle.copyWith(
       fontFamilyFallback: const ['monospace'],
@@ -376,25 +376,12 @@ class _JsonViewerState extends State<JsonViewer> {
                 ),
 
                 // ── Content (horizontally scrollable) ──
+                // Using SelectableRegion for multi-line text selection
                 Expanded(
-                  child: SelectionArea(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (int i = 0; i < lines.length; i++)
-                              _buildContentLine(
-                                line: lines[i],
-                                lineHeight: lineHeight,
-                                style: contentStyle,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  child: _SelectableJsonContent(
+                    lines: lines,
+                    lineHeight: lineHeight,
+                    contentStyle: contentStyle,
                   ),
                 ),
               ],
@@ -497,37 +484,6 @@ class _JsonViewerState extends State<JsonViewer> {
     }
 
     return cell;
-  }
-
-  /// Builds one content row: indented text spans with optional
-  /// [GlobalKey] for scroll-to-active-match.
-  Widget _buildContentLine({
-    required _FlatLine line,
-    required double lineHeight,
-    required TextStyle style,
-  }) {
-    Widget content = SizedBox(
-      height: lineHeight,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: EdgeInsets.only(left: line.indentLevel * _indentWidth),
-          child: Text.rich(
-            TextSpan(
-              style: style,
-              children: line.spans,
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (line.hasActiveMatch) {
-      _activeScrollKey ??= GlobalKey();
-      content = KeyedSubtree(key: _activeScrollKey, child: content);
-    }
-
-    return content;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -960,4 +916,81 @@ class _ChildEntry {
     this.isLast = false,
     required this.childPath,
   });
+}
+
+/// Custom widget that handles text selection across multiple lines using SelectableRegion.
+/// SelectableRegion allows selection across multiple widgets without SelectionArea + ScrollView conflict.
+class _SelectableJsonContent extends StatefulWidget {
+  final List<_FlatLine> lines;
+  final double lineHeight;
+  final TextStyle contentStyle;
+
+  const _SelectableJsonContent({
+    required this.lines,
+    required this.lineHeight,
+    required this.contentStyle,
+  });
+
+  @override
+  State<_SelectableJsonContent> createState() => _SelectableJsonContentState();
+}
+
+class _SelectableJsonContentState extends State<_SelectableJsonContent> {
+  // Global key to get the GlobalKey for SelectableRegion
+  final GlobalKey _selectableRegionKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    // Build the full text for SelectableRegion
+    final allText = StringBuffer();
+    final lineStartIndices = <int>[];
+    for (final line in widget.lines) {
+      lineStartIndices.add(allText.length);
+      for (final span in line.spans) {
+        allText.write(span.text ?? '');
+      }
+      allText.writeln();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SelectableRegion(
+              key: _selectableRegionKey,
+              focusNode: FocusNode(),
+              selectionControls: materialTextSelectionControls,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < widget.lines.length; i++)
+                      _buildLine(i, widget.lines[i]),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLine(int index, _FlatLine line) {
+    return Container(
+      height: widget.lineHeight,
+      alignment: Alignment.centerLeft,
+      padding: EdgeInsets.only(left: line.indentLevel * 16.0),
+      child: Text.rich(
+        TextSpan(
+          style: widget.contentStyle,
+          children: line.spans,
+        ),
+      ),
+    );
+  }
 }

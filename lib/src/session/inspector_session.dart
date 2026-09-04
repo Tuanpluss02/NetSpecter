@@ -114,11 +114,17 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
   @override
   bool get groupingEnabled => _grouping.enabled;
 
+  Set<String>? _cachedAvailableDomains;
+
   @override
   Set<String> get availableDomains {
-    return _memoryIndex.entries
+    return _cachedAvailableDomains ??= _memoryIndex.entries
         .map((entry) => RequestFilter.extractDomain(entry.url))
         .toSet();
+  }
+
+  void _invalidateAvailableDomainsCache() {
+    _cachedAvailableDomains = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -148,9 +154,10 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
     // Runs synchronously (no awaits) so no new record() call can interleave.
     _droppedCount += _preInitQueue.droppedCount;
     _preferences.setUrlDecodeEnabled(settings.urlDecodeEnabled);
-    RawCapture? pending;
-    while ((pending = _preInitQueue.removeFirstOrNull()) != null) {
-      _sendCapture(pending!);
+    while (true) {
+      final pending = _preInitQueue.removeFirstOrNull();
+      if (pending == null) break;
+      _sendCapture(pending);
     }
   }
 
@@ -158,6 +165,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
     _inFlight--;
     _cancelPendingTimeout(entry.id);
     _memoryIndex.add(entry);
+    _invalidateGroupedCache();
     notifyListeners();
   }
 
@@ -202,14 +210,38 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
   void toggleDomainExpanded(String domain) =>
       _grouping.toggleDomainExpanded(domain);
 
+  List<DomainGroup>? _cachedGroupedRecords;
+  int _cachedGroupedRecordsHash = 0;
+
+  void _invalidateGroupedCache() {
+    _cachedGroupedRecords = null;
+    _cachedGroupedRecordsHash = 0;
+    _invalidateAvailableDomainsCache();
+  }
+
+  int _computeGroupedRecordsHash() {
+    int hash = 0;
+    for (final entry in entries) {
+      hash = hash ^ entry.id.hashCode;
+      hash = hash ^ entry.url.hashCode;
+    }
+    hash = hash ^ _grouping.hashCode;
+    return hash;
+  }
+
   @override
   List<DomainGroup> getGroupedRecords() {
+    final currentHash = _computeGroupedRecordsHash();
+    if (_cachedGroupedRecords != null && _cachedGroupedRecordsHash == currentHash) {
+      return _cachedGroupedRecords!;
+    }
+
     final grouped = <String, List<RequestSummary>>{};
     for (final entry in entries) {
       final domain = RequestFilter.extractDomain(entry.url);
       grouped.putIfAbsent(domain, () => []).add(entry);
     }
-    return grouped.entries
+    _cachedGroupedRecords = grouped.entries
         .map(
           (e) => DomainGroup(
             domain: e.key,
@@ -218,6 +250,8 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
           ),
         )
         .toList();
+    _cachedGroupedRecordsHash = currentHash;
+    return _cachedGroupedRecords!;
   }
 
   Future<void> applyNetworkSimulationBeforeRequest({
@@ -315,6 +349,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
       ),
     );
     _schedulePendingTimeout(id);
+    _invalidateGroupedCache();
     notifyListeners();
   }
 
@@ -360,6 +395,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
           fileLength: current.fileLength,
         ),
       );
+      _invalidateGroupedCache();
       notifyListeners();
     });
   }
@@ -496,6 +532,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
       }
       _droppedCount = 0;
       _memoryIndex.clear();
+      _invalidateGroupedCache();
       _filter = RequestFilter();
       _search.reset();
       for (final timer in _pendingTimers.values) {
@@ -510,6 +547,7 @@ class InspectorSession extends ChangeNotifier implements InspectorSessionView {
 
   @override
   Future<void> dispose() async {
+    _search.cancel();
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _grouping.removeListener(notifyListeners);

@@ -42,8 +42,9 @@ void main() {
     });
 
     test('skips body when body starts with [  (binary placeholder)', () {
+      // Binary placeholders use null byte prefix to distinguish from JSON arrays
       final cmd = CurlGenerator.fromRecord(
-        _record(requestBodyPreview: '[binary: 100 bytes]'),
+        _record(requestBodyPreview: '\x00[binary: 100 bytes]'),
       );
       expect(cmd, isNot(contains('--data-raw')));
     });
@@ -106,8 +107,9 @@ void main() {
     });
 
     test('response content.text is empty for binary placeholder', () {
+      // Binary placeholders use null byte prefix to distinguish from JSON arrays
       final har = HarExporter.fromRecords([
-        _record(responseBodyPreview: '[binary: 512 bytes]'),
+        _record(responseBodyPreview: '\x00[binary: 512 bytes]'),
       ]);
       final entry = ((har['log'] as Map)['entries'] as List).first as Map;
       final content = (entry['response'] as Map)['content'] as Map;

@@ -12,6 +12,7 @@ class MemoryIndex {
 
   final int maxEntries;
   final List<IndexEntry> _entries = [];
+  final Map<String, int> _idIndex = {};
 
   /// Unmodifiable snapshot of the current entries (newest first).
   List<IndexEntry> get entries => UnmodifiableListView(_entries);
@@ -19,16 +20,18 @@ class MemoryIndex {
   int get length => _entries.length;
 
   void add(IndexEntry entry) {
-    final existingIndex = _entries.indexWhere((e) => e.id == entry.id);
-    if (existingIndex != -1) {
+    final existingIndex = _idIndex[entry.id];
+    if (existingIndex != null && existingIndex < _entries.length && _entries[existingIndex].id == entry.id) {
       _entries[existingIndex] = entry;
       return;
     }
 
     if (_entries.length >= maxEntries) {
-      _entries.removeLast();
+      final removed = _entries.removeLast();
+      _idIndex.remove(removed.id);
     }
     _entries.insert(0, entry);
+    _idIndex[entry.id] = 0;
   }
 
   /// Returns entries matching [filter], or all entries if [filter.isEmpty].
@@ -39,5 +42,6 @@ class MemoryIndex {
 
   void clear() {
     _entries.clear();
+    _idIndex.clear();
   }
 }
